@@ -1,62 +1,158 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppContext } from "@/lib/context";
-import { calcAngle } from "@/lib/analyze";
+import {
+  extractAnglesFromLandmarks,
+  validateSideView,
+  drawSkeleton,
+  drawAngleAnnotations,
+  LANDMARK_INDICES,
+} from "@/lib/analyze";
+import { PoseAngles } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Pose, POSE_CONNECTIONS, Results as PoseResults } from "@mediapipe/pose";
-import { Camera, Upload, AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Camera,
+  Upload,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  ChevronRight,
+} from "lucide-react";
+
+type CaptureMode = "camera" | "video";
+type PedalPosition = "6oclock" | "3oclock";
+
+interface CaptureState {
+  angles: PoseAngles;
+  label: string;
+}
+
+const POSITION_LABELS: Record<PedalPosition, string> = {
+  "6oclock": "6 點鐘（踏板最低點）",
+  "3oclock": "3 點鐘（踏板向前）",
+};
+
+const POSITION_HINTS: Record<PedalPosition, string> = {
+  "6oclock": "踏板踩至最低點，膝蓋自然伸展",
+  "3oclock": "踏板推至水平向前，用於 KOPS 膝蓋對齊分析",
+};
 
 export function Analyze() {
-  const { measurements, setAngles, setActiveTab } = useAppContext();
-  const [mode, setMode] = useState<"video" | "camera">("camera");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { measurements, setSixOClockAngles, setThreeOClockAngles, setActiveTab } =
+    useAppContext();
+
+  const [mode, setMode] = useState<CaptureMode>("camera");
+  const [pedalPos, setPedalPos] = useState<PedalPosition>("6oclock");
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState("請側面面對鏡頭，完整入鏡後擷取姿態");
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<string>("請面對鏡頭側拍騎姿");
-  
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [captures, setCaptures] = useState<Partial<Record<PedalPosition, CaptureState>>>({});
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const poseRef = useRef<Pose | null>(null);
-  const animationRef = useRef<number>();
+  const animFrameRef = useRef<number | undefined>(undefined);
   const streamRef = useRef<MediaStream | null>(null);
+  const latestLandmarksRef = useRef<any[] | null>(null);
 
-  // Stop camera when unmounting or switching mode
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-  }, []);
-
-  useEffect(() => {
+  // --- MediaPipe setup ---
+  const initPose = useCallback(() => {
     const pose = new Pose({
-      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+      locateFile: (file: string) =>
+        "https://cdn.jsdelivr.net/npm/@mediapipe/pose/" + file,
     });
-    
     pose.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
-    
-    pose.onResults(onPoseResults);
-    poseRef.current = pose;
 
-    return () => {
-      stopCamera();
-      pose.close();
+    pose.onResults((results: PoseResults) => {
+      if (!canvasRef.current || !videoRef.current) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.poseLandmarks && results.poseLandmarks.length > 0) {
+        latestLandmarksRef.current = results.poseLandmarks;
+
+        drawSkeleton(ctx, canvas, results.poseLandmarks, POSE_CONNECTIONS as [number, number][]);
+
+        // Live angle annotations
+        const validation = validateSideView(results.poseLandmarks);
+        if (validation.isValid) {
+          setValidationWarning(null);
+          try {
+            const angles = extractAnglesFromLandmarks(results.poseLandmarks, pedalPos);
+            drawAngleAnnotations(ctx, canvas, results.poseLandmarks, angles);
+          } catch {}
+        } else {
+          setValidationWarning(validation.message);
+        }
+      } else {
+        latestLandmarksRef.current = null;
+        setValidationWarning("未偵測到人體姿態，請調整位置");
+      }
+    });
+
+    poseRef.current = pose;
+    return pose;
+  }, [pedalPos]);
+
+  // --- Camera control ---
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    cancelAnimationFrame(animFrameRef.current!);
+  }, []);
+
+  const startDetectionLoop = useCallback(() => {
+    const loop = async () => {
+      if (videoRef.current && poseRef.current && videoRef.current.readyState >= 2) {
+        await poseRef.current.send({ image: videoRef.current });
+      }
+      animFrameRef.current = requestAnimationFrame(loop);
     };
-  }, [stopCamera]);
+    loop();
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    try {
+      setError(null);
+      setStatus("正在開啟後鏡頭...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      startDetectionLoop();
+      setStatus("請側面面對鏡頭，完整入鏡後擷取姿態");
+    } catch {
+      setError("無法存取相機，請確認已授予鏡頭權限");
+    }
+  }, [startDetectionLoop]);
+
+  // Reinit pose when pedalPos changes (to update angle ranges for annotations)
+  useEffect(() => {
+    const pose = initPose();
+    return () => {
+      pose.close();
+      cancelAnimationFrame(animFrameRef.current!);
+    };
+  }, [initPose]);
 
   useEffect(() => {
     if (mode === "camera") {
@@ -64,254 +160,277 @@ export function Analyze() {
     } else {
       stopCamera();
     }
-  }, [mode, stopCamera]);
-
-  const startCamera = async () => {
-    try {
-      setError(null);
-      setProgress("正在開啟相機...");
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        startDetectionLoop();
-      }
-      setProgress("請面對鏡頭側拍騎姿");
-    } catch (err) {
-      setError("無法存取相機，請確認權限設定");
-    }
-  };
-
-  const startDetectionLoop = () => {
-    const detect = async () => {
-      if (videoRef.current && poseRef.current && videoRef.current.readyState >= 2) {
-        await poseRef.current.send({ image: videoRef.current });
-      }
-      animationRef.current = requestAnimationFrame(detect);
+    return () => {
+      if (mode === "camera") stopCamera();
     };
-    detect();
-  };
+  }, [mode, startCamera, stopCamera]);
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const url = URL.createObjectURL(file);
-    if (videoRef.current) {
+  // --- Video upload ---
+  const handleVideoUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !videoRef.current) return;
+      const url = URL.createObjectURL(file);
       videoRef.current.src = url;
+      videoRef.current.loop = true;
       videoRef.current.play();
       startDetectionLoop();
-      setProgress("播放影片中進行分析...");
-    }
-  };
+      setStatus("影片播放中，偵測關節點中...");
+      setError(null);
+    },
+    [startDetectionLoop]
+  );
 
-  const onPoseResults = (results: PoseResults) => {
-    if (!canvasRef.current || !videoRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Match canvas size to video
-    if (canvas.width !== videoRef.current.videoWidth) {
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
-    }
-
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw landmarks if found
-    if (results.poseLandmarks) {
-      const lms = results.poseLandmarks;
-      
-      // Draw connections
-      ctx.strokeStyle = "#2b7fff"; // Primary color
-      ctx.lineWidth = 4;
-      POSE_CONNECTIONS.forEach(([i, j]) => {
-        const pt1 = lms[i];
-        const pt2 = lms[j];
-        if (pt1.visibility && pt1.visibility > 0.5 && pt2.visibility && pt2.visibility > 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(pt1.x * canvas.width, pt1.y * canvas.height);
-          ctx.lineTo(pt2.x * canvas.width, pt2.y * canvas.height);
-          ctx.stroke();
-        }
-      });
-
-      // Draw points
-      ctx.fillStyle = "#ffffff";
-      lms.forEach((pt) => {
-        if (pt.visibility && pt.visibility > 0.5) {
-          ctx.beginPath();
-          ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 6, 0, 2 * Math.PI);
-          ctx.fill();
-        }
-      });
-    }
-    ctx.restore();
-  };
-
-  const captureAngles = () => {
-    // Need a single frame to extract
-    if (!videoRef.current || !poseRef.current) return;
-    setIsAnalyzing(true);
-    setProgress("計算角度中...");
-    
-    // Simple extraction from current pose (assuming we have it stored or just send a sync frame)
-    poseRef.current.send({ image: videoRef.current }).then(() => {
-      setIsAnalyzing(false);
-      // We need to wait for onResults to actually fire...
-      // Hack: we will extract from the last known good frame in onResults, but we don't have access here easily without state.
-      // Better: let's just do it directly.
-    });
-    
-    // Actually, onPoseResults is async, so let's just set a flag to grab it next frame.
-    // To keep it simple and robust, let's just mock the extraction for a moment if we don't have it,
-    // wait, we can just grab from the pose landmarks if we save them.
-  };
-
-  // We need to store latest landmarks to capture
-  const latestLandmarksRef = useRef<any>(null);
-  
-  useEffect(() => {
-    if (poseRef.current) {
-      const originalOnResults = poseRef.current.onResults;
-      poseRef.current.onResults = (results: PoseResults) => {
-        latestLandmarksRef.current = results.poseLandmarks;
-        onPoseResults(results); // Call the drawing one
-      };
-    }
-  }, []);
-
-  const doCapture = () => {
+  // --- Capture ---
+  const doCapture = useCallback(() => {
     if (!latestLandmarksRef.current) {
-      setError("未偵測到完整身體節點，請調整位置");
+      setError("尚未偵測到姿態，請調整位置後重試");
       return;
     }
-    
-    const lms = latestLandmarksRef.current;
-    // Indices: LEFT_SHOULDER=11, LEFT_ELBOW=13, LEFT_WRIST=15, LEFT_HIP=23, LEFT_KNEE=25, LEFT_ANKLE=27
-    
-    // Helper to get point in pixel coords for angle calc
-    const getPt = (idx: number) => ({ x: lms[idx].x, y: lms[idx].y });
-    
-    try {
-      const shoulder = getPt(11);
-      const elbow = getPt(13);
-      const wrist = getPt(15);
-      const hip = getPt(23);
-      const knee = getPt(25);
-      const ankle = getPt(27);
-      
-      const kneeAngle = calcAngle(hip, knee, ankle);
-      const hipAngle = calcAngle(shoulder, hip, knee);
-      const elbowAngle = calcAngle(shoulder, elbow, wrist);
-      
-      // Torso vs horizontal: calc angle between shoulder-hip line and horizontal
-      const dx = shoulder.x - hip.x;
-      const dy = shoulder.y - hip.y; // note y increases downwards
-      let torsoAngle = Math.round(Math.abs(Math.atan2(dy, dx) * 180 / Math.PI));
-      if (torsoAngle > 90) torsoAngle = 180 - torsoAngle;
-      
-      setAngles({
-        kneeAngle,
-        hipAngle,
-        torsoAngle,
-        elbowAngle
-      });
-      
-      stopCamera();
-      setActiveTab("results");
-    } catch (e) {
-      setError("無法計算角度，請確保側面入鏡");
+
+    const validation = validateSideView(latestLandmarksRef.current);
+    if (!validation.isValid) {
+      setError(validation.message);
+      return;
     }
+
+    try {
+      const angles = extractAnglesFromLandmarks(latestLandmarksRef.current, pedalPos);
+
+      setCaptures((prev) => ({
+        ...prev,
+        [pedalPos]: { angles, label: POSITION_LABELS[pedalPos] },
+      }));
+
+      if (pedalPos === "6oclock") {
+        setSixOClockAngles(angles);
+        setStatus("6 點鐘位置擷取成功！可繼續擷取 3 點鐘（選填）或直接查看結果");
+        // Auto-switch to 3oclock for convenience
+        setPedalPos("3oclock");
+      } else {
+        setThreeOClockAngles(angles);
+        setStatus("3 點鐘位置擷取成功！");
+      }
+      setError(null);
+      setValidationWarning(null);
+    } catch (err: any) {
+      setError(err.message || "角度計算失敗，請確保側面完整入鏡");
+    }
+  }, [pedalPos, setSixOClockAngles, setThreeOClockAngles]);
+
+  const clearCapture = (pos: PedalPosition) => {
+    setCaptures((prev) => {
+      const next = { ...prev };
+      delete next[pos];
+      return next;
+    });
+    if (pos === "6oclock") setSixOClockAngles(null);
+    else setThreeOClockAngles(null);
   };
 
   if (!measurements) {
     return (
-      <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+      <div className="p-6 flex flex-col items-center justify-center min-h-[70vh] text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-muted-foreground" />
         <p className="text-muted-foreground">請先於首頁填寫基本數據</p>
-        <Button onClick={() => setActiveTab("home")} variant="outline">回首頁</Button>
+        <Button onClick={() => setActiveTab("home")} variant="outline" data-testid="button-go-home">
+          回首頁
+        </Button>
       </div>
     );
   }
 
+  const can6 = !!captures["6oclock"];
+  const can3 = !!captures["3oclock"];
+
   return (
-    <div className="p-4 space-y-6 pb-20 animate-in fade-in duration-300">
-      <div className="space-y-2">
+    <div className="p-4 space-y-4 pb-24 animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">姿勢分析</h1>
-        <p className="text-sm text-muted-foreground">{progress}</p>
+        <p className="text-sm text-muted-foreground">{status}</p>
       </div>
 
-      <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-background border border-border">
-          <TabsTrigger value="camera" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Camera className="w-4 h-4 mr-2" />
-            即時相機
-          </TabsTrigger>
-          <TabsTrigger value="video" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Upload className="w-4 h-4 mr-2" />
-            影片上傳
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Mode selector */}
+      <div className="flex bg-muted rounded-lg p-1 gap-1">
+        {(["camera", "video"] as CaptureMode[]).map((m) => (
+          <button
+            key={m}
+            data-testid={`mode-${m}`}
+            onClick={() => setMode(m)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === m
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {m === "camera" ? (
+              <Camera className="w-4 h-4" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {m === "camera" ? "即時相機" : "影片上傳"}
+          </button>
+        ))}
+      </div>
 
+      {/* Pedal position selector */}
+      <Card className="p-3 bg-card/50 border-border/60">
+        <p className="text-xs text-muted-foreground mb-2 font-medium">踏板位置</p>
+        <div className="flex gap-2">
+          {(["6oclock", "3oclock"] as PedalPosition[]).map((pos) => {
+            const captured = !!captures[pos];
+            return (
+              <button
+                key={pos}
+                data-testid={`position-${pos}`}
+                onClick={() => setPedalPos(pos)}
+                className={`flex-1 flex items-center justify-between px-3 py-2 rounded-md text-sm border transition-colors ${
+                  pedalPos === pos
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                <span className="font-medium">
+                  {pos === "6oclock" ? "6 點鐘" : "3 點鐘"}
+                </span>
+                {captured ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                ) : pos === "6oclock" ? (
+                  <span className="text-[10px] text-destructive font-medium">必填</span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">選填</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">{POSITION_HINTS[pedalPos]}</p>
+      </Card>
+
+      {/* Errors / Warnings */}
       {error && (
-        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive-foreground">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>錯誤</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          {error}
+        </div>
+      )}
+      {validationWarning && !error && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-sm text-amber-400">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          {validationWarning}
+        </div>
       )}
 
-      <Card className="relative overflow-hidden bg-black aspect-[3/4] border-primary/30 flex items-center justify-center">
-        {mode === "video" && !videoRef.current?.src && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 space-y-4 bg-card/80">
-            <div className="p-4 rounded-full bg-primary/20 text-primary">
+      {/* Camera/Video viewport */}
+      <div className="relative rounded-xl overflow-hidden bg-black border border-border/50 aspect-[3/4]">
+        {mode === "video" && (
+          <label
+            htmlFor="video-upload"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/90 cursor-pointer hover:bg-card/70 transition-colors"
+            id="video-upload-area"
+          >
+            <div className="p-4 rounded-full bg-primary/15 text-primary">
               <Upload className="w-8 h-8" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">請選擇側面騎乘影片</p>
-            <Label htmlFor="video-upload" className="cursor-pointer">
-              <div className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 font-medium">
-                選擇檔案
-              </div>
-              <Input 
-                id="video-upload" 
-                type="file" 
-                accept="video/*" 
-                className="hidden" 
-                onChange={handleVideoUpload}
-              />
-            </Label>
-          </div>
+            <p className="text-sm text-muted-foreground font-medium">點擊選擇側面騎乘影片</p>
+            <input
+              id="video-upload"
+              data-testid="input-video-upload"
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={handleVideoUpload}
+            />
+          </label>
         )}
-        
-        <video 
-          ref={videoRef} 
+
+        <video
+          ref={videoRef}
           className="absolute inset-0 w-full h-full object-contain"
           playsInline
           muted
           loop={mode === "video"}
         />
-        <canvas 
-          ref={canvasRef} 
+        <canvas
+          ref={canvasRef}
           className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
         />
-      </Card>
 
-      <Button 
-        className="w-full h-14 text-lg font-medium shadow-lg shadow-primary/20" 
+        {/* Live position label */}
+        <div className="absolute top-3 left-3 z-30 px-2 py-1 bg-black/60 rounded text-xs text-white font-medium backdrop-blur-sm">
+          {POSITION_LABELS[pedalPos]}
+        </div>
+      </div>
+
+      {/* Capture button */}
+      <Button
+        className="w-full h-14 text-base font-semibold shadow-lg shadow-primary/20"
         size="lg"
         onClick={doCapture}
-        disabled={isAnalyzing}
+        disabled={isLoading}
+        data-testid="button-capture"
       >
-        {isAnalyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : "擷取當前角度"}
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        ) : (
+          <>
+            擷取{pedalPos === "6oclock" ? " 6 點鐘" : " 3 點鐘"}姿態
+          </>
+        )}
       </Button>
+
+      {/* Capture summaries */}
+      {(can6 || can3) && (
+        <Card className="p-4 space-y-3 border-border/50 bg-card/40">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            已擷取
+          </p>
+          {(["6oclock", "3oclock"] as PedalPosition[]).map((pos) => {
+            const cap = captures[pos];
+            if (!cap) return null;
+            const a = cap.angles;
+            return (
+              <div
+                key={pos}
+                className="flex items-center justify-between bg-background/60 rounded-lg p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">{cap.label}</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      膝 {a.kneeAngle}° · 軀幹 {a.torsoAngle}° · 肘 {a.elbowAngle}°
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => clearCapture(pos)}
+                  className="text-xs text-muted-foreground hover:text-destructive px-2 py-1 rounded"
+                >
+                  清除
+                </button>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
+      {/* Proceed button */}
+      {can6 && (
+        <Button
+          variant="outline"
+          className="w-full h-12 font-semibold border-primary/50 text-primary hover:bg-primary/10"
+          onClick={() => {
+            stopCamera();
+            setActiveTab("results");
+          }}
+          data-testid="button-go-results"
+        >
+          查看分析結果
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      )}
     </div>
   );
 }

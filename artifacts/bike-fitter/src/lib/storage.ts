@@ -1,12 +1,12 @@
 import { FittingRecord } from "./types";
 
-const STORAGE_KEY = 'bike-fitter-history';
+const STORAGE_KEY = "bike-fitter-history";
 
 export function getHistory(): FittingRecord[] {
-  try { 
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); 
-  } catch { 
-    return []; 
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
   }
 }
 
@@ -16,5 +16,8 @@ export function saveRecord(r: FittingRecord): void {
 }
 
 export function deleteRecord(id: string): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(getHistory().filter(r => r.id !== id)));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(getHistory().filter((r) => r.id !== id))
+  );
 }
