@@ -19,6 +19,7 @@ import {
   Loader2,
   CheckCircle2,
   ChevronRight,
+  SwitchCamera,
 } from "lucide-react";
 
 type CaptureMode = "camera" | "video";
@@ -45,6 +46,7 @@ export function Analyze() {
 
   const [mode, setMode] = useState<CaptureMode>("camera");
   const [pedalPos, setPedalPos] = useState<PedalPosition>("6oclock");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("請側面面對鏡頭，完整入鏡後擷取姿態");
   const [error, setError] = useState<string | null>(null);
@@ -126,12 +128,12 @@ export function Analyze() {
     loop();
   }, []);
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (facing: "environment" | "user" = "environment") => {
     try {
       setError(null);
-      setStatus("正在開啟後鏡頭...");
+      setStatus(facing === "environment" ? "正在開啟後鏡頭..." : "正在開啟前鏡頭...");
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -145,6 +147,13 @@ export function Analyze() {
     }
   }, [startDetectionLoop]);
 
+  const switchCamera = useCallback(() => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    stopCamera();
+    startCamera(next);
+  }, [facingMode, stopCamera, startCamera]);
+
   // Reinit pose when pedalPos changes (to update angle ranges for annotations)
   useEffect(() => {
     const pose = initPose();
@@ -156,13 +165,15 @@ export function Analyze() {
 
   useEffect(() => {
     if (mode === "camera") {
-      startCamera();
+      startCamera(facingMode);
     } else {
       stopCamera();
     }
     return () => {
       if (mode === "camera") stopCamera();
     };
+    // facingMode intentionally omitted — switching handled by switchCamera()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, startCamera, stopCamera]);
 
   // --- Video upload ---
@@ -361,6 +372,18 @@ export function Analyze() {
         <div className="absolute top-3 left-3 z-30 px-2 py-1 bg-black/60 rounded text-xs text-white font-medium backdrop-blur-sm">
           {POSITION_LABELS[pedalPos]}
         </div>
+
+        {/* Switch camera button — only in camera mode */}
+        {mode === "camera" && (
+          <button
+            data-testid="button-switch-camera"
+            onClick={switchCamera}
+            className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/60 text-white backdrop-blur-sm hover:bg-black/80 active:scale-95 transition-all"
+            title={facingMode === "environment" ? "切換為前鏡頭" : "切換為後鏡頭"}
+          >
+            <SwitchCamera className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Capture button */}
