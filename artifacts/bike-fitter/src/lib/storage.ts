@@ -1,6 +1,20 @@
-import { FittingRecord } from "./types";
+import { BodyMeasurements, FittingRecord } from "./types";
 
 const STORAGE_KEY = "bike-fitter-history";
+const MEASUREMENTS_KEY = "bike-fitter-measurements";
+
+export function loadMeasurements(): BodyMeasurements | null {
+  try {
+    const raw = localStorage.getItem(MEASUREMENTS_KEY);
+    return raw ? (JSON.parse(raw) as BodyMeasurements) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveMeasurements(m: BodyMeasurements): void {
+  localStorage.setItem(MEASUREMENTS_KEY, JSON.stringify(m));
+}
 
 export function getHistory(): FittingRecord[] {
   try {

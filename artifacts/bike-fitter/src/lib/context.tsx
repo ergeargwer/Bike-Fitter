@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { BodyMeasurements, PoseAngles } from "./types";
+import { loadMeasurements, saveMeasurements } from "./storage";
 
 export type TabType = "home" | "analyze" | "results" | "history";
 
@@ -17,10 +18,17 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [measurements, setMeasurements] = useState<BodyMeasurements | null>(null);
+  const [measurements, setMeasurementsState] = useState<BodyMeasurements | null>(
+    () => loadMeasurements()
+  );
   const [sixOClockAngles, setSixOClockAngles] = useState<PoseAngles | null>(null);
   const [threeOClockAngles, setThreeOClockAngles] = useState<PoseAngles | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("home");
+
+  const setMeasurements = (m: BodyMeasurements) => {
+    saveMeasurements(m);
+    setMeasurementsState(m);
+  };
 
   return (
     <AppContext.Provider
