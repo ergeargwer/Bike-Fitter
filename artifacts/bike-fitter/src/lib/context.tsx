@@ -1,12 +1,16 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { BodyMeasurements, PoseAngles } from "./types";
-import { loadMeasurements, saveMeasurements } from "./storage";
+import { BikeProfile, BodyMeasurements, PoseAngles } from "./types";
+import { loadMeasurements, saveMeasurements, loadBikeProfiles, saveBikeProfiles } from "./storage";
 
-export type TabType = "home" | "analyze" | "results" | "history";
+export type TabType = "home" | "bikes" | "analyze" | "results" | "history";
 
 interface AppContextType {
   measurements: BodyMeasurements | null;
   setMeasurements: (m: BodyMeasurements) => void;
+  bikeProfiles: BikeProfile[];
+  setBikeProfiles: (profiles: BikeProfile[]) => void;
+  selectedBikeProfile: BikeProfile | null;
+  setSelectedBikeProfile: (p: BikeProfile | null) => void;
   sixOClockAngles: PoseAngles | null;
   setSixOClockAngles: (a: PoseAngles | null) => void;
   threeOClockAngles: PoseAngles | null;
@@ -21,6 +25,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [measurements, setMeasurementsState] = useState<BodyMeasurements | null>(
     () => loadMeasurements()
   );
+  const [bikeProfiles, setBikeProfilesState] = useState<BikeProfile[]>(
+    () => loadBikeProfiles()
+  );
+  const [selectedBikeProfile, setSelectedBikeProfile] = useState<BikeProfile | null>(null);
   const [sixOClockAngles, setSixOClockAngles] = useState<PoseAngles | null>(null);
   const [threeOClockAngles, setThreeOClockAngles] = useState<PoseAngles | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("home");
@@ -30,11 +38,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMeasurementsState(m);
   };
 
+  const setBikeProfiles = (profiles: BikeProfile[]) => {
+    saveBikeProfiles(profiles);
+    setBikeProfilesState(profiles);
+  };
+
   return (
     <AppContext.Provider
       value={{
         measurements,
         setMeasurements,
+        bikeProfiles,
+        setBikeProfiles,
+        selectedBikeProfile,
+        setSelectedBikeProfile,
         sixOClockAngles,
         setSixOClockAngles,
         threeOClockAngles,

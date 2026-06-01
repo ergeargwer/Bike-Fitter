@@ -41,8 +41,15 @@ const POSITION_HINTS: Record<PedalPosition, string> = {
 };
 
 export function Analyze() {
-  const { measurements, setSixOClockAngles, setThreeOClockAngles, setActiveTab } =
-    useAppContext();
+  const {
+    measurements,
+    bikeProfiles,
+    selectedBikeProfile,
+    setSelectedBikeProfile,
+    setSixOClockAngles,
+    setThreeOClockAngles,
+    setActiveTab,
+  } = useAppContext();
 
   const [mode, setMode] = useState<CaptureMode>("camera");
   const [pedalPos, setPedalPos] = useState<PedalPosition>("6oclock");
@@ -261,6 +268,44 @@ export function Analyze() {
         <h1 className="text-2xl font-bold tracking-tight">姿勢分析</h1>
         <p className="text-sm text-muted-foreground">{status}</p>
       </div>
+
+      {/* Bike profile selector */}
+      <Card className="p-3 bg-card/50 border-border/60">
+        <p className="text-xs text-muted-foreground mb-2 font-medium">選擇車型</p>
+        {bikeProfiles.length === 0 ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">尚未建立車型</p>
+            <button
+              onClick={() => setActiveTab("bikes")}
+              className="text-xs text-primary underline underline-offset-2"
+            >
+              前往新增
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {bikeProfiles.map((p) => (
+              <button
+                key={p.id}
+                onClick={() =>
+                  setSelectedBikeProfile(selectedBikeProfile?.id === p.id ? null : p)
+                }
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm border transition-colors ${
+                  selectedBikeProfile?.id === p.id
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
+                }`}
+                data-testid={`select-profile-${p.id}`}
+              >
+                <span className="font-medium">{p.name}</span>
+                <span className="text-xs opacity-70">
+                  {p.type === "road" ? "公路車" : "三鐵車"} · {p.sizeLabel}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Mode selector */}
       <div className="flex bg-muted rounded-lg p-1 gap-1">

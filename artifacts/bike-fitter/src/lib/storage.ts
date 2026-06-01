@@ -1,4 +1,4 @@
-import { BodyMeasurements, FittingRecord } from "./types";
+import { BikeProfile, BodyMeasurements, FittingRecord } from "./types";
 
 const STORAGE_KEY = "bike-fitter-history";
 const MEASUREMENTS_KEY = "bike-fitter-measurements";
@@ -14,6 +14,24 @@ export function loadMeasurements(): BodyMeasurements | null {
 
 export function saveMeasurements(m: BodyMeasurements): void {
   localStorage.setItem(MEASUREMENTS_KEY, JSON.stringify(m));
+}
+
+const BIKE_PROFILES_KEY = "bikeProfiles";
+export const MAX_BIKE_PROFILES = 2;
+
+export function loadBikeProfiles(): BikeProfile[] {
+  try {
+    return JSON.parse(localStorage.getItem(BIKE_PROFILES_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function saveBikeProfiles(profiles: BikeProfile[]): void {
+  localStorage.setItem(
+    BIKE_PROFILES_KEY,
+    JSON.stringify(profiles.slice(0, MAX_BIKE_PROFILES))
+  );
 }
 
 export function getHistory(): FittingRecord[] {

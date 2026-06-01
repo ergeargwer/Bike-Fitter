@@ -44,6 +44,30 @@ export interface KOPSAnalysis {
   suggestion: string;
 }
 
+export interface BikeProfile {
+  id: string;
+  name: string;
+  type: "road" | "tri";
+  sizeLabel: string;
+  geometry: {
+    seatTube: number;
+    stack: number;
+    reach: number;
+    headTube: number;
+    seatAngle: number;
+    bbDrop: number;
+    forkRake: number;
+  };
+}
+
+export interface GeometryFeedback {
+  recommendedSaddleHeight: { min: number; max: number };
+  stackAssessment: "符合" | "偏高" | "偏低";
+  reachAssessment: "符合" | "偏長" | "偏短";
+  headTubeNote: string;
+  seatAngleNote: string;
+}
+
 export interface FittingRecord {
   id: string;
   date: string;

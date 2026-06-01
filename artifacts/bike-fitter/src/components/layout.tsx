@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Home, Activity, BarChart3, Clock } from "lucide-react";
+import { Home, Bike, Activity, Clock } from "lucide-react";
 import { useAppContext } from "@/lib/context";
 import { cn } from "@/lib/utils";
 
@@ -7,10 +7,10 @@ export function Layout({ children }: { children: ReactNode }) {
   const { activeTab, setActiveTab } = useAppContext();
 
   const tabs = [
-    { id: 'home' as const, label: '首頁', icon: Home },
-    { id: 'analyze' as const, label: '分析', icon: Activity },
-    { id: 'results' as const, label: '結果', icon: BarChart3 },
-    { id: 'history' as const, label: '紀錄', icon: Clock },
+    { id: "home" as const, label: "首頁", icon: Home },
+    { id: "bikes" as const, label: "車型", icon: Bike },
+    { id: "analyze" as const, label: "分析", icon: Activity },
+    { id: "history" as const, label: "紀錄", icon: Clock },
   ];
 
   return (

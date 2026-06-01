@@ -1,5 +1,5 @@
 import { useAppContext } from "@/lib/context";
-import { calculateLeMond } from "@/lib/lemond";
+import { calculateLeMond, analyzeGeometryFit } from "@/lib/lemond";
 import { analyzeAngles, analyzeKOPS, calculateFitScore } from "@/lib/analyze";
 import { saveRecord } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -114,7 +114,7 @@ function priorityDot(p: "high" | "medium" | "low") {
 }
 
 export function Results() {
-  const { measurements, sixOClockAngles, threeOClockAngles, setActiveTab } =
+  const { measurements, sixOClockAngles, threeOClockAngles, selectedBikeProfile, setActiveTab } =
     useAppContext();
   const { toast } = useToast();
 
@@ -135,6 +135,9 @@ export function Results() {
   }
 
   const lemond = calculateLeMond(measurements);
+  const geometryFeedback = selectedBikeProfile
+    ? analyzeGeometryFit(selectedBikeProfile, measurements.inseam)
+    : null;
   const analyses6 = analyzeAngles(sixOClockAngles, measurements.bikeType);
   const analyses3 = threeOClockAngles
     ? analyzeAngles(threeOClockAngles, measurements.bikeType)
@@ -221,6 +224,56 @@ export function Results() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Geometry feedback card */}
+      {geometryFeedback && selectedBikeProfile && (
+        <Card className="border-border/50 bg-card/50">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ChevronRight className="w-4 h-4 text-primary" />
+              <span>{selectedBikeProfile.name}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {selectedBikeProfile.type === "road" ? "公路車" : "三鐵車"} · {selectedBikeProfile.sizeLabel}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-lg bg-background border border-border/50 space-y-0.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Stack 評估</p>
+                <p className={`text-sm font-bold ${
+                  geometryFeedback.stackAssessment === "符合" ? "text-emerald-500"
+                  : geometryFeedback.stackAssessment === "偏高" ? "text-amber-500"
+                  : "text-red-400"
+                }`}>
+                  {geometryFeedback.stackAssessment}
+                </p>
+                <p className="text-[10px] text-muted-foreground">建議 {geometryFeedback.recommendedSaddleHeight.min}–{geometryFeedback.recommendedSaddleHeight.max} mm</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-background border border-border/50 space-y-0.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Reach 評估</p>
+                <p className={`text-sm font-bold ${
+                  geometryFeedback.reachAssessment === "符合" ? "text-emerald-500"
+                  : "text-amber-500"
+                }`}>
+                  {geometryFeedback.reachAssessment}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Reach {selectedBikeProfile.geometry.reach} mm</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                <Minus className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                <span>{geometryFeedback.headTubeNote}</span>
+              </div>
+              <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                <Minus className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                <span>{geometryFeedback.seatAngleNote}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 6-oclock analyses */}
       <div className="space-y-3">
