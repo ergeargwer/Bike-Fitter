@@ -1,17 +1,20 @@
 import { useAppContext } from "@/lib/context";
 import { calculateLeMond, analyzeGeometryFit } from "@/lib/lemond";
 import { analyzeAngles, analyzeKOPS, calculateFitScore } from "@/lib/analyze";
-import { saveRecord } from "@/lib/storage";
+import { saveRecord, saveVisualizerParams } from "@/lib/storage";
+import { getDefaultCrankLength } from "@/lib/visualizer";
+import type { VisualizerParams } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
-  Save,
-  TrendingUp,
-  TrendingDown,
+  Layers,
   Minus,
+  Save,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -144,6 +147,21 @@ export function Results() {
     : null;
   const kops = threeOClockAngles ? analyzeKOPS(threeOClockAngles) : null;
   const fitScore = calculateFitScore(analyses6);
+
+  const handleGoToVisualizer = () => {
+    const params: VisualizerParams = {
+      bikeProfileId: selectedBikeProfile?.id ?? "",
+      saddleHeight: Math.round(lemond.saddleHeight * 10),
+      saddleOffset: 30,
+      stemHeight: selectedBikeProfile
+        ? selectedBikeProfile.geometry.stack + 20
+        : Math.round(measurements.height * 6.5),
+      stemLength: 100,
+      crankLength: getDefaultCrankLength(measurements.height),
+    };
+    saveVisualizerParams(params);
+    setActiveTab("visualizer");
+  };
 
   const handleSave = () => {
     saveRecord({
@@ -456,9 +474,19 @@ export function Results() {
         </Card>
       )}
 
+      {/* Go to visualizer */}
+      <Button
+        variant="outline"
+        className="w-full h-12 text-sm font-medium border-primary/40 text-primary hover:bg-primary/10"
+        onClick={handleGoToVisualizer}
+      >
+        <Layers className="w-4 h-4 mr-2" />
+        帶入視覺化模擬
+      </Button>
+
       {/* Save */}
       <Button
-        className="w-full h-14 text-base font-semibold shadow-lg shadow-primary/15 mt-4"
+        className="w-full h-14 text-base font-semibold shadow-lg shadow-primary/15"
         size="lg"
         onClick={handleSave}
         data-testid="button-save"

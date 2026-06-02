@@ -1,4 +1,4 @@
-import { BikeProfile, BodyMeasurements, FittingRecord } from "./types";
+import { BikeProfile, BodyMeasurements, FittingRecord, VisualizerParams } from "./types";
 
 const STORAGE_KEY = "bike-fitter-history";
 const MEASUREMENTS_KEY = "bike-fitter-measurements";
@@ -52,4 +52,19 @@ export function deleteRecord(id: string): void {
     STORAGE_KEY,
     JSON.stringify(getHistory().filter((r) => r.id !== id))
   );
+}
+
+const VISUALIZER_PARAMS_KEY = "visualizerParams";
+
+export function loadVisualizerParams(): VisualizerParams | null {
+  try {
+    const raw = localStorage.getItem(VISUALIZER_PARAMS_KEY);
+    return raw ? (JSON.parse(raw) as VisualizerParams) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveVisualizerParams(p: VisualizerParams): void {
+  localStorage.setItem(VISUALIZER_PARAMS_KEY, JSON.stringify(p));
 }

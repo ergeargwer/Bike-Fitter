@@ -5,6 +5,7 @@ import { Home } from "@/pages/home";
 import { BikeProfiles } from "@/pages/BikeProfiles";
 import { Analyze } from "@/pages/analyze";
 import { Results } from "@/pages/results";
+import { BikeVisualizer } from "@/pages/BikeVisualizer";
 import { History } from "@/pages/history";
 
 function AppContent() {
@@ -16,6 +17,7 @@ function AppContent() {
       {activeTab === "bikes" && <BikeProfiles />}
       {activeTab === "analyze" && <Analyze />}
       {activeTab === "results" && <Results />}
+      {activeTab === "visualizer" && <BikeVisualizer />}
       {activeTab === "history" && <History />}
     </Layout>
   );

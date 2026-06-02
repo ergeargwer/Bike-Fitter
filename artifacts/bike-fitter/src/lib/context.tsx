@@ -2,7 +2,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 import { BikeProfile, BodyMeasurements, PoseAngles } from "./types";
 import { loadMeasurements, saveMeasurements, loadBikeProfiles, saveBikeProfiles } from "./storage";
 
-export type TabType = "home" | "bikes" | "analyze" | "results" | "history";
+export type TabType = "home" | "bikes" | "analyze" | "results" | "visualizer" | "history";
 
 interface AppContextType {
   measurements: BodyMeasurements | null;

@@ -1,0 +1,1 @@
+- [BikeVisualizer geometry](visualizer-geometry.md) — shoulder via 2-circle intersection (not hip→handlebar direction); findJoint handles clamped cases.

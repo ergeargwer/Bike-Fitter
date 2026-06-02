@@ -68,6 +68,15 @@ export interface GeometryFeedback {
   seatAngleNote: string;
 }
 
+export interface VisualizerParams {
+  bikeProfileId: string;
+  saddleHeight: number;
+  saddleOffset: number;
+  stemHeight: number;
+  stemLength: number;
+  crankLength: number;
+}
+
 export interface FittingRecord {
   id: string;
   date: string;
