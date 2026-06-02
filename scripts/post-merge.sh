@@ -11,7 +11,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
   else
     git remote add github "$GITHUB_REMOTE"
   fi
-  git push github main
+  git push github main --force-with-lease
 else
   echo "GITHUB_TOKEN is not set — skipping GitHub sync"
 fi
