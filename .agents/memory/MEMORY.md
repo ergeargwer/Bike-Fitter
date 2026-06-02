@@ -1,1 +1,2 @@
 - [BikeVisualizer geometry](visualizer-geometry.md) — shoulder via 2-circle intersection (not hip→handlebar direction); findJoint handles clamped cases.
+- [Bike Visualizer Kinematics](bike-visualizer-kinematics.md) — corrected thigh/shin ratio, ankle offset, LEG_SCALE, knee bend convention, all from bike-fit-vis reference.

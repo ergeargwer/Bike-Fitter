@@ -10,23 +10,27 @@ import {
   GROUND_SVG_Y,
   type BikePositionsSVG,
   type RiderPositionsSVG,
+  type VisualizerDrawData,
 } from "@/lib/visualizer";
 import type { VisualizerParams } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
-const FRAME_COLOR = "#4A9EFF";
-const WHEEL_COLOR = "#888888";
-const RIDER_COLOR = "#E8E8E8";
-const RIDER_DIM = "#555555";
-const JOINT_COLOR = "#FFFFFF";
-const HEAD_R = 11;
+const FRAME_COLOR  = "#4A9EFF";
+const WHEEL_COLOR  = "#888888";
+const RIDER_COLOR  = "#E8E8E8";
+const RIDER_DIM    = "#484848";
+const JOINT_COLOR  = "#FFFFFF";
+const FOOT_COLOR   = "#BBBBBB";
+const HEAD_R  = 11;
 const JOINT_R = 3;
 
 function p(pt: { x: number; y: number }) {
   return `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
 }
 
-function Dot({ pt, r = JOINT_R, fill = JOINT_COLOR }: { pt: { x: number; y: number }; r?: number; fill?: string }) {
+function Dot({
+  pt, r = JOINT_R, fill = JOINT_COLOR,
+}: { pt: { x: number; y: number }; r?: number; fill?: string }) {
   return <circle cx={pt.x} cy={pt.y} r={r} fill={fill} />;
 }
 
@@ -63,15 +67,14 @@ function BikeFrameSVG({ bike }: { bike: BikePositionsSVG }) {
       {/* BB */}
       <Dot pt={bb} r={4} fill={FRAME_COLOR} />
 
-      {/* Saddle: horizontal line with seatpost stub */}
+      {/* Saddle: horizontal rail + seatpost stub */}
       <line x1={saddle.x - 18} y1={saddle.y} x2={saddle.x + 18} y2={saddle.y} stroke={FRAME_COLOR} strokeWidth="3" strokeLinecap="round" />
       <line x1={saddle.x} y1={saddle.y} x2={seatTubeTop.x} y2={seatTubeTop.y} stroke={FRAME_COLOR} strokeWidth="1.5" strokeDasharray="3 2" />
 
-      {/* Steerer extension above head tube to stem */}
+      {/* Steerer + stem */}
       <line x1={headTubeTop.x} y1={headTubeTop.y} x2={stemStart.x} y2={stemStart.y} stroke={FRAME_COLOR} strokeWidth="2" strokeLinecap="round" />
-      {/* Stem (horizontal) */}
       <line x1={stemStart.x} y1={stemStart.y} x2={handlebar.x} y2={handlebar.y} stroke={FRAME_COLOR} strokeWidth="2" strokeLinecap="round" />
-      {/* Handlebar (vertical line) */}
+      {/* Handlebar drops */}
       <line x1={handlebar.x} y1={handlebar.y - 9} x2={handlebar.x} y2={handlebar.y + 9} stroke={FRAME_COLOR} strokeWidth="3" strokeLinecap="round" />
     </g>
   );
@@ -79,104 +82,62 @@ function BikeFrameSVG({ bike }: { bike: BikePositionsSVG }) {
 
 function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
   const {
-    pedal6, knee6, hip, shoulder, elbow, wrist, headCenter,
-    pedal12, knee12,
+    pedal6, ankle6, footTip6, knee6,
+    hip, shoulder, elbow, wrist, headCenter,
+    pedal12, ankle12, knee12,
   } = rider;
 
   return (
     <g>
-      {/* Secondary leg (12 o'clock, dim) */}
-      <polyline points={`${p(hip)} ${p(knee12)} ${p(pedal12)}`} fill="none" stroke={RIDER_DIM} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <Dot pt={knee12} fill={RIDER_DIM} />
+      {/* ── Secondary leg (12 o'clock, dim) ─────────────────────────── */}
+      <polyline
+        points={`${p(hip)} ${p(knee12)} ${p(ankle12)} ${p(pedal12)}`}
+        fill="none" stroke={RIDER_DIM} strokeWidth="3"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Dot pt={knee12}  fill={RIDER_DIM} />
+      <Dot pt={ankle12} fill={RIDER_DIM} />
       <Dot pt={pedal12} fill={RIDER_DIM} />
 
-      {/* Primary leg (6 o'clock) */}
-      <polyline points={`${p(hip)} ${p(knee6)} ${p(pedal6)}`} fill="none" stroke={RIDER_COLOR} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* ── Primary leg (6 o'clock) ──────────────────────────────────── */}
+      {/* Foot: ankle → toe tip (toe-forward line), ankle → pedal */}
+      <polyline
+        points={`${p(footTip6)} ${p(ankle6)} ${p(pedal6)}`}
+        fill="none" stroke={FOOT_COLOR} strokeWidth="2.5"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* Thigh + shin */}
+      <polyline
+        points={`${p(hip)} ${p(knee6)} ${p(ankle6)}`}
+        fill="none" stroke={RIDER_COLOR} strokeWidth="3.5"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
 
-      {/* Torso */}
-      <line x1={hip.x} y1={hip.y} x2={shoulder.x} y2={shoulder.y} stroke={RIDER_COLOR} strokeWidth="3.5" strokeLinecap="round" />
+      {/* ── Torso ────────────────────────────────────────────────────── */}
+      <line
+        x1={hip.x} y1={hip.y} x2={shoulder.x} y2={shoulder.y}
+        stroke={RIDER_COLOR} strokeWidth="3.5" strokeLinecap="round"
+      />
 
-      {/* Arm */}
-      <polyline points={`${p(shoulder)} ${p(elbow)} ${p(wrist)}`} fill="none" stroke={RIDER_COLOR} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* ── Arm ──────────────────────────────────────────────────────── */}
+      <polyline
+        points={`${p(shoulder)} ${p(elbow)} ${p(wrist)}`}
+        fill="none" stroke={RIDER_COLOR} strokeWidth="3"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
 
-      {/* Head */}
+      {/* ── Head ─────────────────────────────────────────────────────── */}
       <circle cx={headCenter.x} cy={headCenter.y} r={HEAD_R} fill="none" stroke={RIDER_COLOR} strokeWidth="2.5" />
 
-      {/* Joints */}
+      {/* ── Joint dots ───────────────────────────────────────────────── */}
       <Dot pt={hip} />
       <Dot pt={knee6} />
+      <Dot pt={ankle6} />
       <Dot pt={pedal6} />
       <Dot pt={shoulder} />
       <Dot pt={elbow} />
       <Dot pt={wrist} />
     </g>
-  );
-}
-
-function AnnotationsSVG({ kneeAngle6, torsoAngle, knee6SVG, shoulderSVG }: {
-  kneeAngle6: number;
-  torsoAngle: number;
-  knee6SVG: { x: number; y: number };
-  shoulderSVG: { x: number; y: number };
-}) {
-  const ax = 310;
-  return (
-    <g fill="#888888" fontSize="9" fontFamily="monospace">
-      <text x={ax} y={Math.max(40, Math.min(shoulderSVG.y, 120))}>
-        軀幹 {torsoAngle}°
-      </text>
-      <text x={ax} y={Math.max(80, Math.min(knee6SVG.y + 10, 230))}>
-        膝蓋 {kneeAngle6}°
-      </text>
-    </g>
-  );
-}
-
-function buildDefaultParams(
-  measurements: { height: number; inseam: number } | null,
-  stack: number
-): VisualizerParams {
-  const inseam = measurements?.inseam ?? 82;
-  const height = measurements?.height ?? 175;
-  return {
-    bikeProfileId: "",
-    saddleHeight: Math.round(inseam * 8.83),
-    saddleOffset: 30,
-    stemHeight: stack + 20,
-    stemLength: 100,
-    crankLength: getDefaultCrankLength(height),
-  };
-}
-
-interface ParamRowProps {
-  label: string;
-  value: number;
-  hint: string;
-  step?: number;
-  onChange: (v: number) => void;
-}
-
-function ParamRow({ label, value, hint, step = 1, onChange }: ParamRowProps) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">{label}</label>
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            value={value}
-            step={step}
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (!isNaN(v)) onChange(v);
-            }}
-            className="w-24 h-8 rounded-md bg-card border border-border px-2 text-sm text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <span className="text-xs text-muted-foreground w-6">mm</span>
-        </div>
-      </div>
-      <p className="text-[11px] text-muted-foreground">{hint}</p>
-    </div>
   );
 }
 
@@ -198,7 +159,7 @@ export function BikeVisualizer() {
   const [liveParams, setLiveParams] = useState<VisualizerParams>(draftParams);
 
   const profile =
-    bikeProfiles.find((p) => p.id === liveParams.bikeProfileId) ??
+    bikeProfiles.find((bp) => bp.id === liveParams.bikeProfileId) ??
     bikeProfiles[0] ??
     null;
   const geometry = profile?.geometry ?? DEFAULT_GEOMETRY;
@@ -219,7 +180,7 @@ export function BikeVisualizer() {
     : "建議 Stack + 10–40 mm 墊片";
 
   function set(key: keyof VisualizerParams, val: number) {
-    setDraftParams((p) => ({ ...p, [key]: val }));
+    setDraftParams((prev) => ({ ...prev, [key]: val }));
   }
 
   function handleUpdate() {
@@ -260,22 +221,12 @@ export function BikeVisualizer() {
           style={{ display: "block" }}
         >
           {/* Ground */}
-          <line
-            x1="0" y1={GROUND_SVG_Y}
-            x2="400" y2={GROUND_SVG_Y}
-            stroke="#333" strokeWidth="1.5"
-          />
+          <line x1="0" y1={GROUND_SVG_Y} x2="400" y2={GROUND_SVG_Y} stroke="#333" strokeWidth="1.5" />
 
           {vizData ? (
             <>
               <BikeFrameSVG bike={vizData.bike} />
               <StickmanSVG rider={vizData.rider} />
-              <AnnotationsSVG
-                kneeAngle6={vizData.kneeAngle6}
-                torsoAngle={vizData.torsoAngle}
-                knee6SVG={vizData.rider.knee6}
-                shoulderSVG={vizData.rider.shoulder}
-              />
             </>
           ) : (
             <text x="200" y="150" textAnchor="middle" fill="#666" fontSize="12">
@@ -285,19 +236,8 @@ export function BikeVisualizer() {
         </svg>
       </div>
 
-      {/* Angle badges */}
-      {vizData && (
-        <div className="flex gap-3 px-4 py-2">
-          <div className="flex items-center gap-1.5 text-xs bg-card border border-border/50 rounded-md px-2.5 py-1">
-            <span className="text-muted-foreground">膝蓋</span>
-            <span className="font-mono font-bold">{vizData.kneeAngle6}°</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs bg-card border border-border/50 rounded-md px-2.5 py-1">
-            <span className="text-muted-foreground">軀幹</span>
-            <span className="font-mono font-bold">{vizData.torsoAngle}°</span>
-          </div>
-        </div>
-      )}
+      {/* Angle badges with target ranges */}
+      {vizData && <AngleBadges vizData={vizData} bikeType={profile?.type ?? "road"} />}
 
       {/* Params */}
       <div className="px-4 pb-4 space-y-4">
@@ -346,6 +286,112 @@ export function BikeVisualizer() {
           更新畫面
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+interface AngleSpec {
+  label: string;
+  value: number;
+  minGood: number;
+  maxGood: number;
+  unit?: string;
+}
+
+function AngleBadges({
+  vizData,
+  bikeType,
+}: {
+  vizData: VisualizerDrawData;
+  bikeType: "road" | "tri";
+}) {
+  const torsoMin = bikeType === "tri" ? 25 : 35;
+  const torsoMax = bikeType === "tri" ? 40 : 55;
+
+  const angles: AngleSpec[] = [
+    { label: "膝蓋彎曲", value: vizData.kneeAngle6, minGood: 25, maxGood: 35, unit: "°" },
+    { label: "軀幹前傾", value: vizData.torsoAngle, minGood: torsoMin, maxGood: torsoMax, unit: "°" },
+    { label: "髖關節角", value: vizData.hipAngle,   minGood: 45, maxGood: 65, unit: "°" },
+    { label: "手肘角度", value: vizData.elbowAngle, minGood: 150, maxGood: 165, unit: "°" },
+  ];
+
+  return (
+    <div className="px-4 py-3 grid grid-cols-2 gap-2">
+      {angles.map((a) => {
+        const ok = a.value >= a.minGood && a.value <= a.maxGood;
+        const low = a.value < a.minGood;
+        const statusColor = ok ? "text-emerald-400" : low ? "text-sky-400" : "text-amber-400";
+        const statusLabel = ok ? "符合" : low ? "偏小" : "偏大";
+        return (
+          <div
+            key={a.label}
+            className="flex items-center justify-between bg-card border border-border/50 rounded-lg px-3 py-2"
+          >
+            <div>
+              <p className="text-xs text-muted-foreground">{a.label}</p>
+              <p className="text-[10px] text-muted-foreground/60">
+                建議 {a.minGood}–{a.maxGood}{a.unit}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-mono font-bold text-base leading-tight">
+                {a.value}{a.unit}
+              </p>
+              <p className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function buildDefaultParams(
+  measurements: { height: number; inseam: number } | null,
+  stack: number
+): VisualizerParams {
+  const inseam = measurements?.inseam ?? 82;
+  const height = measurements?.height ?? 175;
+  return {
+    bikeProfileId: "",
+    saddleHeight: Math.round(inseam * 8.83),
+    saddleOffset: 30,
+    stemHeight: stack + 20,
+    stemLength: 100,
+    crankLength: getDefaultCrankLength(height),
+  };
+}
+
+interface ParamRowProps {
+  label: string;
+  value: number;
+  hint: string;
+  step?: number;
+  onChange: (v: number) => void;
+}
+
+function ParamRow({ label, value, hint, step = 1, onChange }: ParamRowProps) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium">{label}</label>
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            value={value}
+            step={step}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v)) onChange(v);
+            }}
+            className="w-24 h-8 rounded-md bg-card border border-border px-2 text-sm text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <span className="text-xs text-muted-foreground w-6">mm</span>
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
     </div>
   );
 }
