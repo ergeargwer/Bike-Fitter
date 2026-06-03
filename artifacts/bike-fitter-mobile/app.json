@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Bike Fitter",
+    "slug": "bike-fitter-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "bike-fitter-mobile",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "需要相機進行騎乘姿態分析，偵測關節角度以提供 Fitting 建議。"
+      }
+    },
+    "android": {
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
