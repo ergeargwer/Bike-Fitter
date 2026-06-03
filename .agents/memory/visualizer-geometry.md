@@ -36,6 +36,6 @@ description: SVG y-down coordinate system used in visualizer.ts — signs, scale
 - `viewBox.width = wheelbase + LEFT_MM(380) + RIGHT_MM(380)`
 - `viewBox.height = ABOVE_AXLE_MM(900) + WHEEL_RADIUS_MM(336) + BELOW_GROUND_MM(80) = 1316`
 - `groundY = 900 + 336 = 1236`
-- BikeVisualizer.tsx consumes `vizData.viewBox` and `vizData.groundY` (added by Task #5 agent)
+- BikeVisualizer.tsx consumes `vizData.viewBox` and `vizData.groundY`
 
 **Why:** The old code used y-up bike-space converted via toSVG flip. New code uses y-down natively so there is no sign flip. Old y-up approach caused confusion about which sign to use for BB drop.
