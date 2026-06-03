@@ -11,7 +11,21 @@ if [ -n "$GITHUB_TOKEN" ]; then
   else
     git remote add github "$GITHUB_REMOTE"
   fi
-  git push github main --force-with-lease
+
+  # Fetch latest remote state so the ahead count is accurate
+  git fetch github main -q 2>/dev/null || true
+
+  AHEAD=$(git rev-list --count github/main..HEAD 2>/dev/null || echo 0)
+
+  if [ "$AHEAD" -gt 0 ]; then
+    echo "Pushing $AHEAD commit(s) to GitHub..."
+    # Non-force push only — protected branches reject force-push;
+    # if push fails (e.g. required status checks), log a warning but
+    # do NOT fail the post-merge setup so the merge itself still succeeds.
+    git push github main 2>&1 || echo "WARNING: GitHub push skipped (branch protection or network issue — push manually when checks pass)"
+  else
+    echo "GitHub already up-to-date."
+  fi
 else
   echo "GITHUB_TOKEN is not set — skipping GitHub sync"
 fi
