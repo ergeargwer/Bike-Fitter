@@ -208,8 +208,8 @@ export function calculateVisualizerData(
   const handlebar = v(stemStart.x + params.stemLength, stemStart.y);
 
   // ── Body segment lengths (mm) ─────────────────────────────────────────────
-  const thighMm      = measurements.inseam     * 10 * LEG_SCALE * THIGH_RATIO;
-  const shinMm       = measurements.inseam     * 10 * LEG_SCALE * SHIN_RATIO;
+  const thighMm      = measurements.inseam      * 10 * LEG_SCALE * THIGH_RATIO;
+  const shinMm       = measurements.inseam      * 10 * LEG_SCALE * SHIN_RATIO;
   const torsoMm      = measurements.torsoLength * 10;
   const armMm        = measurements.armLength   * 10;
   const neckMm       = measurements.height      * 10 * 0.13;
