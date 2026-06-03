@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useAppContext } from "@/lib/context";
 import { calculateLeMond, analyzeGeometryFit } from "@/lib/lemond";
 import { analyzeAngles, analyzeKOPS, calculateFitScore } from "@/lib/analyze";
 import { saveRecord, saveVisualizerParams } from "@/lib/storage";
+import { shareResults, exportResultsImage } from "@/lib/share";
 import { getDefaultCrankLength } from "@/lib/visualizer";
 import type { VisualizerParams } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -10,9 +12,12 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
+  Download,
   Layers,
+  Loader2,
   Minus,
   Save,
+  Share2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -120,6 +125,8 @@ export function Results() {
   const { measurements, sixOClockAngles, threeOClockAngles, selectedBikeProfile, setActiveTab } =
     useAppContext();
   const { toast } = useToast();
+  const [sharing, setSharing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   if (!measurements || !sixOClockAngles) {
     return (
@@ -177,6 +184,42 @@ export function Results() {
     });
     toast({ title: "紀錄已儲存", description: "可在「紀錄」頁查看" });
     setActiveTab("history");
+  };
+
+  const shareData = {
+    measurements,
+    lemond,
+    analyses: analyses6,
+    fitScore,
+    kops,
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const result = await shareResults(shareData);
+      if (result === "shared") {
+        toast({ title: "已分享", description: "分析報告已成功分享" });
+      } else if (result === "copied") {
+        toast({ title: "已複製", description: "分析報告已複製至剪貼簿" });
+      }
+    } catch {
+      toast({ title: "分享失敗", description: "請稍後再試", variant: "destructive" });
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportResultsImage(shareData);
+      toast({ title: "匯出成功", description: "圖片已下載至裝置" });
+    } catch {
+      toast({ title: "匯出失敗", description: "請稍後再試", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -473,6 +516,38 @@ export function Results() {
           </CardContent>
         </Card>
       )}
+
+      {/* Share / Export row */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          variant="outline"
+          className="h-12 text-sm font-medium"
+          onClick={handleShare}
+          disabled={sharing}
+          data-testid="button-share"
+        >
+          {sharing ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Share2 className="w-4 h-4 mr-2" />
+          )}
+          分享報告
+        </Button>
+        <Button
+          variant="outline"
+          className="h-12 text-sm font-medium"
+          onClick={handleExport}
+          disabled={exporting}
+          data-testid="button-export"
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4 mr-2" />
+          )}
+          匯出圖片
+        </Button>
+      </div>
 
       {/* Go to visualizer */}
       <Button

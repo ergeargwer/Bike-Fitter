@@ -288,10 +288,9 @@ export function calculateVisualizerData(
   // Elbow angle: interior(shoulder, elbow, wrist). Target 150-165°.
   const elbowAngle = Math.round(interiorAngle(shoulder, elbow, wrist));
 
-  // ── Convert to SVG coordinates ────────────────────────────────────────────
-  // viewBox: sized to wheelbase + fixed margins, groundY = ABOVE_AXLE + wheel radius
-  const viewBoxW = wheelbase + LEFT_MM + RIGHT_MM;
-  const viewBoxH = ABOVE_AXLE_MM + WHEEL_RADIUS_MM + BELOW_GROUND_MM;
+  // ── ViewBox ───────────────────────────────────────────────────────────────
+  const vbWidth  = wheelbase + LEFT_MM + RIGHT_MM;
+  const vbHeight = ABOVE_AXLE_MM + WHEEL_RADIUS_MM + BELOW_GROUND_MM;
   const groundY  = ABOVE_AXLE_MM + WHEEL_RADIUS_MM;
 
   return {
@@ -324,7 +323,7 @@ export function calculateVisualizerData(
     torsoAngle,
     hipAngle,
     elbowAngle,
-    viewBox: { width: viewBoxW, height: viewBoxH },
+    viewBox:  { width: vbWidth, height: vbHeight },
     groundY,
   };
 }
