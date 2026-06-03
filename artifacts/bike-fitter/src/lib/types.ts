@@ -57,6 +57,10 @@ export interface BikeProfile {
     seatAngle: number;
     bbDrop: number;
     forkRake: number;
+    // Optional — filled from Mamba geometry when not present
+    headAngle?: number;
+    rearCenter?: number;
+    wheelbase?: number;
   };
 }
 
@@ -70,6 +74,7 @@ export interface GeometryFeedback {
 
 export interface VisualizerParams {
   bikeProfileId: string;
+  mambaSize?: "XS" | "S" | "M" | "L" | "XL";
   saddleHeight: number;
   saddleOffset: number;
   stemHeight: number;

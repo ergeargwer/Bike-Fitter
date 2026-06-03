@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { BikeProfile, BodyMeasurements, PoseAngles } from "./types";
 import { loadMeasurements, saveMeasurements, loadBikeProfiles, saveBikeProfiles } from "./storage";
 
@@ -33,15 +33,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [threeOClockAngles, setThreeOClockAngles] = useState<PoseAngles | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("home");
 
-  const setMeasurements = (m: BodyMeasurements) => {
+  const setMeasurements = useCallback((m: BodyMeasurements) => {
     saveMeasurements(m);
     setMeasurementsState(m);
-  };
+  }, []);
 
-  const setBikeProfiles = (profiles: BikeProfile[]) => {
+  const setBikeProfiles = useCallback((profiles: BikeProfile[]) => {
     saveBikeProfiles(profiles);
     setBikeProfilesState(profiles);
-  };
+  }, []);
 
   return (
     <AppContext.Provider

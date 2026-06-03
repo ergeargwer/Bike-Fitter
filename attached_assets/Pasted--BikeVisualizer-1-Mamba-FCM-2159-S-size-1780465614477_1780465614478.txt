@@ -1,0 +1,106 @@
+請改善模擬頁（BikeVisualizer）的車架繪製方式，以下是完整替換規格：
+
+## 核心改變
+不再用幾何公式即時運算車架線條，改為：
+1. 內建一組以 Mamba FCM-2159 S size 為基準的 SVG 路徑輪廓
+2. 依使用者選擇的車架 size 套用對應幾何數據進行縮放與變形
+3. 人體火柴人疊加於車架 SVG 上方，關節位置依幾何錨點計算
+
+---
+
+## Step 1：建立基準 SVG 車架輪廓
+
+在 src/lib/bikeOutline.ts 建立基準錨點（單位 mm，以後輪軸心為原點）：
+
+以 Mamba S size 數據為基準：
+- 後輪軸心：(0, 0)
+- 前輪軸心：(977, 0)        // wheelbase
+- BB 中心：(408, 70)        // rearCenter=408, bbDrop=70（向上為負，此處 y 軸向下為正，BB 在輪軸下方 70mm）
+- 座管頂：BB 沿座管角度(75°)延伸 460mm
+- 頭管底：前輪軸心往後 + 前中距離反推，依 headAngle(71.5°) 與 forkRake(43mm) 計算
+- 頭管頂：頭管底沿頭管角度向上 95mm（headTube 長度）
+- 上管兩端：座管頂 → 頭管頂
+- 下管兩端：BB → 頭管底
+- 立管兩端：BB → 座管與上管交點（Chain Stay + Seat Stay）
+
+繪製元素：
+- 後輪：圓心(0,0)，半徑 336mm（700c 輪組，直徑 622+外胎約 25mm）
+- 前輪：圓心(977,0)，半徑 336mm
+- 車架線條：上管、下管、座管、立管、後下叉、後上叉
+- 前叉：從頭管底沿頭管角度延伸至前輪軸，考慮 forkRake 偏移
+- 座墊：座管頂水平線段（長 260mm，依座墊前後參數左右偏移）
+- 龍頭：頭管頂水平延伸（龍頭長度 mm），末端垂直短線代表把手立管
+- 把手：龍頭末端短弧線（公路車彎把造型）
+
+線條規格：
+- 車架主線：strokeWidth 8, color #4A9EFF
+- 輪胎：strokeWidth 24, color #555555
+- 輪圈：strokeWidth 4, color #888888
+- 座墊/龍頭：strokeWidth 6, color #4A9EFF
+- 把手：strokeWidth 5, color #AAAAAA
+
+---
+
+## Step 2：多 size 縮放對照表
+
+在 src/lib/bikeOutline.ts 內建 Mamba FCM-2159 完整幾何對照：
+
+const mambaGeometry = {
+  XS: { seatTube:430, stack:493, reach:378, headTube:85,  seatAngle:76,  rearCenter:408, wheelbase:965,  bbDrop:70, forkRake:43, headAngle:71.5 },
+  S:  { seatTube:460, stack:502, reach:385, headTube:95,  seatAngle:75,  rearCenter:408, wheelbase:977,  bbDrop:70, forkRake:43, headAngle:71.5 },
+  M:  { seatTube:490, stack:528, reach:388, headTube:130, seatAngle:75.7,rearCenter:408, wheelbase:976,  bbDrop:70, forkRake:43, headAngle:72   },
+  L:  { seatTube:520, stack:552, reach:391, headTube:145, seatAngle:74.6,rearCenter:408, wheelbase:955,  bbDrop:70, forkRake:43, headAngle:72   },
+  XL: { seatTube:550, stack:582, reach:402, headTube:175, seatAngle:74,  rearCenter:408, wheelbase:1010, bbDrop:70, forkRake:43, headAngle:72.5 }
+}
+
+使用者選擇車型後，自動帶入對應 size 的幾何數據繪製車架。
+
+---
+
+## Step 3：SVG viewBox 與縮放
+
+viewBox 動態計算：
+- 寬度 = wheelbase + 前後各留 400mm
+- 高度 = 輪軸高度 + 車架最高點 + 上下各留 200mm
+- 整體等比縮放至容器寬度（iPhone 螢幕約 390px）
+
+縮放比例 scale = containerWidth / (wheelbase + 800)
+所有錨點座標乘以 scale 後轉為 SVG px
+
+---
+
+## Step 4：火柴人錨點對應車架
+
+關節位置計算（依縮放後座標）：
+- 髖關節 = 座墊位置（依 saddleHeight 與 saddleOffset 從 BB 計算）
+- 膝關節 = 髖關節下方，依大腿長度（inseam x 0.53）
+- 踝關節 = BB 正下方偏移，曲柄 6 點鐘位置（BB.y + crankLength）
+- 肩關節 = 髖關節沿軀幹角度向前上方，依軀幹長度
+- 肘關節 = 肩關節沿手臂方向，手臂長 x 0.55
+- 腕關節 = 把手位置（stemHeight, stemLength 決定）
+- 頭部圓心 = 肩關節正上方，頸長約 120mm
+
+火柴人規格：
+- 主線：strokeWidth 3, color #E8E8E8
+- 關節圓點：半徑 5px, fill #FFFFFF
+- 頭部圓：半徑 18px, stroke #E8E8E8, fill none
+- 對側腿（12點鐘）：color #444444
+
+---
+
+## Step 5：角度標註
+
+在畫面右上角固定區域顯示（不疊在車架上）：
+- 膝蓋角度：髖-膝-踝計算值
+- 軀幹角度：肩與水平線夾角
+- 髖部角度：肩-髖-膝計算值
+格式：小字，灰色 #888888，每行一個數值
+
+---
+
+## 注意事項
+- src/lib/visualizer.ts 完整替換，不保留舊的幾何計算邏輯
+- BikeVisualizer.tsx 的參數輸入區與 LocalStorage 邏輯不變
+- 若使用者未選擇車型或未輸入身體數據，顯示提示文字而非空白畫面
+- 維持深色主題、無 emoji、繁體中文
+- SVG 內所有元素不使用外部圖片資源，純線條繪製

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppContext } from "@/lib/context";
 import { calculateLeMond } from "@/lib/lemond";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,6 @@ export function Home() {
   });
 
   const isFormValid = formData.height && formData.inseam && formData.armLength && formData.torsoLength;
-
-  useEffect(() => {
-    if (isFormValid) {
-      setMeasurements({
-        height: parseFloat(formData.height),
-        inseam: parseFloat(formData.inseam),
-        armLength: parseFloat(formData.armLength),
-        torsoLength: parseFloat(formData.torsoLength),
-        bikeType: formData.bikeType
-      });
-    }
-  }, [formData, isFormValid, setMeasurements]);
 
   const lemondResult = isFormValid ? calculateLeMond({
     height: parseFloat(formData.height),
@@ -151,7 +139,18 @@ export function Home() {
         className="w-full h-14 text-lg font-medium shadow-lg shadow-primary/20" 
         size="lg"
         disabled={!isFormValid}
-        onClick={() => setActiveTab("analyze")}
+        onClick={() => {
+          if (isFormValid) {
+            setMeasurements({
+              height: parseFloat(formData.height),
+              inseam: parseFloat(formData.inseam),
+              armLength: parseFloat(formData.armLength),
+              torsoLength: parseFloat(formData.torsoLength),
+              bikeType: formData.bikeType,
+            });
+          }
+          setActiveTab("analyze");
+        }}
         data-testid="button-start-analyze"
       >
         開始分析
