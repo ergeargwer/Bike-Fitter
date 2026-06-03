@@ -1,46 +1,41 @@
 ---
-name: BikeVisualizer geometry
-description: How frame key-points are computed in visualizer.ts; shoulder placement; findJoint clamping; SVG coordinate system.
+name: Visualizer coordinate system
+description: SVG y-down coordinate system used in visualizer.ts — signs, scale, and viewBox layout
 ---
 
-## Frame key-point math (bike-space: X=forward, Y=up, origin=rear axle)
+# Visualizer geometry conventions
 
-All geometry derived from real Mamba FCM-2159 data (`bikeOutline.ts`).
+## Coordinate system
+- All coordinates in **mm**, no pre-scaling (1mm = 1 SVG unit)
+- SVG native y-down: positive y = downward
+- Rear axle = bike-space origin (0, 0)
+- `toSVG(p)` adds `(LEFT_MM=380, ABOVE_AXLE_MM=900)` to place rear axle at SVG (380, 900)
 
-- **BB**: `bbX = sqrt(rearCenter² - bbDrop²)`, `bb = {x: bbX, y: -bbDrop}`
-- **headTubeTop**: `{x: bb.x + reach, y: bb.y + stack}` (stack/reach measured from BB center)
-- **headTubeBottom**: `headTubeTop + headTube * (cos(headAngle), -sin(headAngle))` — moves forward (+x) and down (-y) in bike-space
-- **frontAxle**: `{x: wheelbase, y: 0}` — wheelbase is horizontal axle-to-axle distance
-- **seatTubeTop**: `bb + seatTube * (-cos(seatAngle), +sin(seatAngle))` — backward and upward
-- Fork: straight line from headTubeBottom to frontAxle (~377mm for S size, visually correct)
+## Key anchor signs (y-down)
+- `bb.y = +bbDrop` (BB is BELOW axle → positive y) ← Previous bug was -bbDrop
+- `seatCluster.y < 0` in bike-space (seat tube goes UP from BB → negative y)
+- `headTubeTop = (bb.x + reach, bb.y - stack)` (stack goes UP → subtract)
+- `headTubeBottom = headTubeTop + headTube × (cos headAngle, sin headAngle)` (HT goes down-forward)
+- `frontAxle = (wheelbase, 0)` directly from geometry — no fork-length derivation needed
+- pedal6 = `(bb.x, bb.y + crankLength)` (6-o'clock = below BB → +crankLength)
+- pedal12 = `(bb.x, bb.y - crankLength)` (12-o'clock = above BB → -crankLength)
 
-**Why:** Real bike geometry requires headAngle, rearCenter, wheelbase to place the frame accurately. Stack/reach/seatAngle alone get close but misplace the front axle.
+## Foot model (y-down signs)
+- `ankle6.y = pedal6.y - footLever × sin(15°)` (heel UP = smaller y ✓)
+- `footTip6.y = pedal6.y + footFwd × sin(15°)` (toe DOWN = larger y ✓)
 
-## Shoulder placement
+## findJoint prefer directions (y-down)
+- Knee: `v(1, 0)` prefer forward ✓ (same in both conventions)
+- Shoulder: `v(0, -1)` prefer UP (smaller y = higher in y-down)
+- Elbow: `v(0, +1)` prefer DOWN (drooping arm)
 
-`shoulder = findJoint(hip, handlebar, torsoMm, armReach, v(0,1))`
+## Torso angle reference direction
+- `angleDeg(sub(shoulder, hip), v(0, -1))` — v(0,-1) = "upward" in y-down
 
-Two-circle intersection: torso-length circle from hip, arm-reach circle from handlebar. Prefer upward (`v(0,1)`) to get forward-leaning posture. Anatomically correct for road/tri bikes.
+## viewBox & groundY
+- `viewBox.width = wheelbase + LEFT_MM(380) + RIGHT_MM(380)`
+- `viewBox.height = ABOVE_AXLE_MM(900) + WHEEL_RADIUS_MM(336) + BELOW_GROUND_MM(80) = 1316`
+- `groundY = 900 + 336 = 1236`
+- BikeVisualizer.tsx consumes `vizData.viewBox` and `vizData.groundY` (added by Task #5 agent)
 
-**Why:** Hip→handlebar direction points downward on road bikes — using it as torso direction put shoulder below hip. 2-circle intersection correctly places shoulder above and forward of hip.
-
-## Knee / other joints
-
-`findJoint(hip, ankle, thigh, shin, v(1,0))` — prefer forward direction. Clamps gracefully when leg is over-extended at LeMond saddle height. Same approach for elbow.
-
-## SVG coordinate system (updated — all mm)
-
-- ViewBox in **real mm** — all positions are millimetres in the viewBox
-- `toSVG(pt) = { x: originX + pt.x, y: originY - pt.y }` (Y flipped, computed inside `calculateVisualizerData`)
-- `originX = WHEEL_RADIUS_MM + H_PAD = 486`; `originY = ABOVE_AXL = 1400`
-- Strokes use `vectorEffect="non-scaling-stroke"` so strokeWidth is always screen px
-- Ground line at `ABOVE_AXL + WHEEL_RADIUS_MM = 1736` (bottom of wheel, returned as `vizData.groundY`)
-- ViewBox for S size: 1949 × 1886 mm, aspect ratio ~1:1
-
-## BikeProfile.geometry optional fields
-
-`headAngle`, `rearCenter`, `wheelbase` are optional on `BikeProfile.geometry`. When absent, visualizer defaults to Mamba S values (71.5°, 408mm, 977mm). Existing profiles with only the original 7 fields still work.
-
-## How to apply
-
-Any future changes to joint positions must use `findJoint` (not linear interpolation or direction vectors) to maintain plausible results across the full range of user-adjustable parameters.
+**Why:** The old code used y-up bike-space converted via toSVG flip. New code uses y-down natively so there is no sign flip. Old y-up approach caused confusion about which sign to use for BB drop.

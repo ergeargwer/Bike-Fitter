@@ -1,0 +1,117 @@
+請完整替換 src/lib/visualizer.ts，
+參考以下已驗證的 SVG 幾何計算邏輯重新實作車架與火柴人。
+
+## 座標系統（最重要）
+- viewBox: "-425 -225 2000 1500"
+- 後輪軸心為原點 (0, 0)
+- SVG y 軸向下為正（螢幕座標）
+- 輪子在 y=0，BB 在 y=+bbDrop（BB 低於輪軸）
+- 車架往上的方向是 y 負值
+
+注意：過去的錯誤是把 BB 算成 y=-bbDrop，方向相反，
+導致整個車架和人體都位置錯誤。
+
+## 各錨點計算（單位 mm，scale 後轉 px）
+
+const RAD = Math.PI / 180
+
+// 基本錨點
+rearAxle  = { x: 0, y: 0 }
+frontAxle = { x: wheelbase, y: 0 }
+bb        = { x: rearCenter, y: bbDrop }   // y 正值，BB 在輪軸下方
+
+// 座管頂（seatCluster）
+seatCluster = {
+  x: bb.x - seatTubeLength * Math.cos(seatAngle * RAD),
+  y: bb.y - seatTubeLength * Math.sin(seatAngle * RAD)
+}
+
+// 頭管底部：從前輪軸心反推
+// 先算前輪軸心修正（fork rake 的水平偏移）
+forkAngle = headAngle  // 前叉沿頭管角度延伸
+headTubeBottom = {
+  x: frontAxle.x - forkLength * Math.sin(forkAngle * RAD) + forkRake * Math.cos(forkAngle * RAD),
+  y: frontAxle.y - forkLength * Math.cos(forkAngle * RAD) - forkRake * Math.sin(forkAngle * RAD)
+}
+
+// 頭管頂部
+headTubeTop = {
+  x: headTubeBottom.x - headTube * Math.cos((90 - headAngle) * RAD),
+  y: headTubeBottom.y - headTube * Math.sin((90 - headAngle) * RAD)  // 向上 = y 負
+}
+
+// 把手位置（龍頭從頭管頂水平延伸）
+handlebar = {
+  x: headTubeTop.x + stemLength,
+  y: headTubeTop.y - stemRise  // stemRise 為龍頭高度調整量
+}
+
+// 座墊位置（從 seatCluster 沿座管角度延伸 seatpostExposure，再加 setback）
+saddle = {
+  x: seatCluster.x - seatpostExposure * Math.cos(seatAngle * RAD) - saddleOffset,
+  y: seatCluster.y - seatpostExposure * Math.sin(seatAngle * RAD)
+}
+
+## 火柴人關節計算（修正版）
+
+// 輸入：使用者身體數據 + 上方各錨點
+
+// 髖關節 = 座墊位置上方約 20mm
+hip = { x: saddle.x, y: saddle.y - 20 }
+
+// 踝關節 = BB 正下方 + 曲柄長（6點鐘位置，y 正值向下）
+ankle = { x: bb.x, y: bb.y + crankLength }
+
+// 膝關節 = 由 hip 與 ankle 用小腿長度三角形求解
+shinLength = inseam * 0.54
+thighLength = inseam * 0.53
+// 用三點定位（已知 hip, ankle, 小腿長）
+// dx = ankle.x - hip.x, dy = ankle.y - hip.y
+// dist = Math.sqrt(dx*dx + dy*dy)
+// 用餘弦定理求膝蓋角，再投影出膝蓋座標
+
+// 肩關節 = 髖關節沿軀幹前傾
+torsoAngle = Math.atan2(handlebar.y - hip.y, handlebar.x - hip.x)  // 從把手反推軀幹方向
+shoulder = {
+  x: hip.x + torsoLength * Math.cos(torsoAngle),
+  y: hip.y + torsoLength * Math.sin(torsoAngle)
+}
+
+// 手肘 = 肩膀到把手中點偏下
+elbow = {
+  x: (shoulder.x + handlebar.x) / 2,
+  y: (shoulder.y + handlebar.y) / 2 + armLength * 0.1
+}
+
+// 頭部 = 肩膀正上方
+headCenter = { x: shoulder.x, y: shoulder.y - headLength }
+
+## SVG 繪製元素（依 HF-Bike 結構）
+
+車架線條（每條用 line 元素）：
+- seat-tube: bb → seatCluster
+- top-tube: seatCluster → headTubeTop
+- down-tube: bb → headTubeBottom
+- chainstay: rearAxle → bb
+- seatstay: rearAxle → seatCluster
+- head-tube: headTubeBottom → headTubeTop
+- fork: headTubeBottom → frontAxle
+- stem: headTubeTop → handlebar
+- seatpost: seatCluster → saddle
+- crank: bb 到 ankle（曲柄線）
+
+輪子（circle 元素）：
+- rear-wheel: 圓心 rearAxle，r=336
+- front-wheel: 圓心 frontAxle，r=336
+
+座墊（path）：
+- 以 saddle 為基準，水平橢圓線段
+
+## scale 計算
+containerWidth = 390  // iPhone 寬度 px
+scale = containerWidth / (wheelbase + 800)
+所有座標 × scale 後套入 SVG
+
+## 注意
+不修改 BikeVisualizer.tsx 的參數輸入與 LocalStorage 部分
+只替換 visualizer.ts 的所有計算與繪製函式
