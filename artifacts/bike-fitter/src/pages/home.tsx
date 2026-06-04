@@ -12,10 +12,10 @@ export function Home() {
   const { measurements, setMeasurements, setActiveTab } = useAppContext();
   
   const [formData, setFormData] = useState({
-    height: measurements?.height?.toString() || "",
-    inseam: measurements?.inseam?.toString() || "",
-    armLength: measurements?.armLength?.toString() || "",
-    torsoLength: measurements?.torsoLength?.toString() || "",
+    height: measurements?.height?.toString() || "175",
+    inseam: measurements?.inseam?.toString() || "82",
+    armLength: measurements?.armLength?.toString() || "60",
+    torsoLength: measurements?.torsoLength?.toString() || "65",
     bikeType: measurements?.bikeType || "road" as "road" | "triathlon"
   });
 
