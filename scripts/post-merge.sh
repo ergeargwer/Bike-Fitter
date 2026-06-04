@@ -91,15 +91,32 @@ pnpm --filter db push
 # which requires the full Expo workflow environment and always times out in CI.
 # Typecheck already catches all type errors for the mobile artifact.
 echo "Running CI checks (typecheck + build)..."
-if ! pnpm run typecheck; then
+TYPECHECK_OUTPUT=""
+TYPECHECK_EXIT=0
+TYPECHECK_OUTPUT=$(pnpm run typecheck 2>&1) || TYPECHECK_EXIT=$?
+if [ "$TYPECHECK_EXIT" -ne 0 ]; then
+  echo "--- typecheck errors ---"
+  echo "$TYPECHECK_OUTPUT"
+  echo "--- end typecheck errors ---"
   echo "ERROR: typecheck failed — skipping GitHub sync"
   notify_failure "Bike Fitter post-merge: typecheck failed — GitHub sync skipped."
   exit 1
+else
+  echo "$TYPECHECK_OUTPUT"
 fi
-if ! pnpm --filter "!@workspace/bike-fitter-mobile" run build; then
+
+BUILD_OUTPUT=""
+BUILD_EXIT=0
+BUILD_OUTPUT=$(pnpm --filter "!@workspace/bike-fitter-mobile" run build 2>&1) || BUILD_EXIT=$?
+if [ "$BUILD_EXIT" -ne 0 ]; then
+  echo "--- build errors ---"
+  echo "$BUILD_OUTPUT"
+  echo "--- end build errors ---"
   echo "ERROR: build failed — skipping GitHub sync"
   notify_failure "Bike Fitter post-merge: build failed — GitHub sync skipped."
   exit 1
+else
+  echo "$BUILD_OUTPUT"
 fi
 echo "CI checks passed."
 
