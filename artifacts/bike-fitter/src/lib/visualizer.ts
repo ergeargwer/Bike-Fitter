@@ -271,9 +271,12 @@ export function calculateVisualizerData(
     hip.y + torsoMm * torsoDir.y
   );
 
-  // Elbow: findJoint from shoulder to wrist, prefer DOWNWARD (natural droop).
-  //   In y-down, down = v(0, +1)
-  const elbow = findJoint(shoulder, handlebar, upperArmMm, foreArmMm, v(0, 1));
+  // Elbow: midpoint of shoulder→handlebar, drooped downward by 30 mm.
+  // Using midpoint avoids findJoint degenerating when shoulder is close to handlebar.
+  const elbow = v(
+    (shoulder.x + handlebar.x) / 2,
+    (shoulder.y + handlebar.y) / 2 + 30
+  );
 
   const wrist = handlebar;
 
