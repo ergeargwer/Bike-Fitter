@@ -1,0 +1,112 @@
+請完整替換 visualizer.ts 中的人體關節計算邏輯。
+
+## 核心問題
+目前火柴人姿勢完全不合理，根本原因是：
+1. 肩關節計算用了錯誤的向量方向
+2. 座墊高度（saddleHeight）被當成絕對 y 座標，
+   而非從 BB 往上量的距離
+
+## 正確的座標計算（全部重寫）
+
+所有計算基於已知車架錨點（SVG px，已縮放）：
+- bbPoint:       BB 中心
+- rearAxlePoint: 後輪軸心（y=ABOVE_AXLE_MM*scale）
+- headTubeTop:   頭管頂端
+- scale:         mm to px 比例
+
+### 各關節位置
+
+const RAD = Math.PI / 180
+const sp = scale  // 縮放比例
+
+// 座墊位置（從 BB 沿座管角度延伸 saddleHeight mm）
+const seatAngleRad = geo.seatAngle * RAD
+const saddle = {
+  x: bbPoint.x - saddleHeight * sp * Math.cos(seatAngleRad) - saddleOffset * sp,
+  y: bbPoint.y - saddleHeight * sp * Math.sin(seatAngleRad)
+  // 注意：y 減少 = 往上，因為 SVG y 向下
+}
+
+// 把手位置（頭管頂往前水平延伸 stemLength，往上 stemRise）
+// stemHeight 是從 BB 量到把手的垂直高度
+const handlebar = {
+  x: headTubeTop.x + stemLength * sp,
+  y: bbPoint.y - stemHeight * sp   // stemHeight 從 BB 往上量
+}
+
+// 髖關節 = 座墊上方 30mm（騎士坐在座墊上）
+const hip = {
+  x: saddle.x,
+  y: saddle.y - 30 * sp
+}
+
+// 踝關節（曲柄 6 點鐘，BB 正下方）
+const ankle = {
+  x: bbPoint.x,
+  y: bbPoint.y + crankLength * sp   // 向下 = y 增加
+}
+
+// 膝關節（三角形求解）
+const thighPx = inseam * 0.53 * sp
+const shinPx  = inseam * 0.54 * sp
+const legDx   = ankle.x - hip.x
+const legDy   = ankle.y - hip.y
+const legDist = Math.sqrt(legDx**2 + legDy**2)
+const safeDist = Math.min(legDist, thighPx + shinPx - 0.1)
+const cosA = (thighPx**2 + safeDist**2 - shinPx**2) / (2 * thighPx * safeDist)
+const angleA = Math.acos(Math.max(-1, Math.min(1, cosA)))
+const legBaseAngle = Math.atan2(legDy, legDx)
+// 膝蓋往前偏（負方向 = 逆時針 = 前方）
+const knee = {
+  x: hip.x + thighPx * Math.cos(legBaseAngle - angleA),
+  y: hip.y + thighPx * Math.sin(legBaseAngle - angleA)
+}
+
+// 肩關節（從髖關節往把手方向延伸軀幹長度）
+// 先算髖到把手的方向角
+const hipToBarDx = handlebar.x - hip.x
+const hipToBarDy = handlebar.y - hip.y
+const torsoDir   = Math.atan2(hipToBarDy, hipToBarDx)
+const shoulder = {
+  x: hip.x + torsoLength * sp * Math.cos(torsoDir),
+  y: hip.y + torsoLength * sp * Math.sin(torsoDir)
+}
+
+// 手肘（肩膀到把手的中間，略往下）
+const elbow = {
+  x: (shoulder.x + handlebar.x) / 2,
+  y: (shoulder.y + handlebar.y) / 2 + 30 * sp
+}
+
+// 頭部（肩膀正上方，頸長約 120mm）
+const headCenter = {
+  x: shoulder.x,
+  y: shoulder.y - 120 * sp
+}
+
+// 對側腿（曲柄 12 點鐘）
+const ankle2 = {
+  x: bbPoint.x,
+  y: bbPoint.y - crankLength * sp   // 向上
+}
+const knee2 = {
+  x: hip.x + thighPx * Math.cos(legBaseAngle + angleA),
+  y: hip.y + thighPx * Math.sin(legBaseAngle + angleA)
+}
+
+## 顏色恢復（改回原本深色主題配色）
+- 主線條：stroke="#E8E8E8", strokeWidth=3
+- 關節圓點：fill="#FFFFFF", r=4
+- 頭部圓：stroke="#E8E8E8", fill="none", r=14
+- 對側腿：stroke="#555555", strokeWidth=2
+
+## 連線順序
+headCenter → shoulder → hip → knee → ankle   （脊椎+主腿）
+shoulder → elbow → handlebar                  （手臂）
+hip → knee2 → ankle2                          （對側腿，較淡）
+
+## 不修改範圍
+- 車架所有錨點計算
+- viewBox / scale 計算
+- BikeVisualizer.tsx 參數輸入區
+- 角度指標卡顯示

@@ -31,19 +31,7 @@ const ABOVE_AXLE_MM   = 1400; // headroom above axle — must fit rider head/sho
 const RIGHT_MM        = 536; // clearance right of front axle (wheel + bar overhang)
 const BELOW_GROUND_MM = 150; // margin below ground line
 
-// ── Body segment constants (from bike-fit-vis reference) ──────────────────────
-const LEG_SCALE             = 1.09;   // anatomical leg (hip→ankle) = 109% inseam
-const THIGH_RATIO           = 0.53;   // thigh is 53% of total leg
-const SHIN_RATIO            = 0.47;   // shin is 47% of total leg
-const FOOT_TO_HEIGHT_RATIO  = 0.152;  // footLength = 15.2% of height
-const FOOT_CONTACT_PROP     = 0.65;   // ankle is 65% from ball toward heel
-const FOOT_ANGLE_6_DEG      = 15;     // foot angle at 6-o'clock (toe slightly down)
-const FOOT_ANGLE_12_DEG     =  5;     // foot angle at 12-o'clock (nearly flat)
-const HIP_FORWARD_MM        = 25;     // hip joint is ~25 mm forward of saddle
-const UPPER_ARM_RATIO       = 0.558;  // upperArm = 55.8% of arm length
-const FORE_ARM_RATIO        = 0.442;  // foreArm  = 44.2% of arm length
-const ARM_REACH_RATIO       = 0.87;   // effective shoulder→wrist reach
-const RAD                   = Math.PI / 180;
+const RAD = Math.PI / 180;
 
 // ── Default geometry (Mamba FCM-2159 S size) ──────────────────────────────────
 export const DEFAULT_GEOMETRY: BikeProfile["geometry"] = {
@@ -68,18 +56,15 @@ export interface BikePositionsSVG {
 }
 
 export interface RiderPositionsSVG {
-  pedal6:     Vec2;
-  ankle6:     Vec2;
-  footTip6:   Vec2;
-  knee6:      Vec2;
   hip:        Vec2;
+  knee6:      Vec2;
+  ankle6:     Vec2;
+  knee12:     Vec2;
+  ankle12:    Vec2;
   shoulder:   Vec2;
   elbow:      Vec2;
-  wrist:      Vec2;
+  wrist:      Vec2;   // = handlebar position
   headCenter: Vec2;
-  pedal12:    Vec2;
-  ankle12:    Vec2;
-  knee12:     Vec2;
 }
 
 export interface VisualizerDrawData {
@@ -112,25 +97,6 @@ function angleDeg(va: Vec2, vb: Vec2): number {
   return (Math.acos(Math.max(-1, Math.min(1, dot(nrm(va), nrm(vb))))) * 180) / Math.PI;
 }
 
-/**
- * Two-circle intersection: find a point that is dA from `a` and dB from `b`.
- * Returns the solution on the `preferDir` side of the a→b line.
- * Gracefully clamps when the circles don't intersect (over-extended limb).
- */
-function findJoint(a: Vec2, b: Vec2, dA: number, dB: number, preferDir: Vec2): Vec2 {
-  const d  = len(sub(b, a));
-  const lo = Math.abs(dA - dB) + 0.01;
-  const hi = dA + dB - 0.01;
-  const cd = Math.max(lo, Math.min(hi, d > 0 ? d : lo));
-  const pa = (dA * dA - dB * dB + cd * cd) / (2 * cd);
-  const h  = Math.sqrt(Math.max(0, dA * dA - pa * pa));
-  const dir  = nrm(sub(b, a));
-  const mid: Vec2 = { x: a.x + pa * dir.x, y: a.y + pa * dir.y };
-  const perp: Vec2 = { x: -dir.y, y: dir.x };
-  const p1: Vec2 = { x: mid.x + h * perp.x, y: mid.y + h * perp.y };
-  const p2: Vec2 = { x: mid.x - h * perp.x, y: mid.y - h * perp.y };
-  return dot(perp, preferDir) >= 0 ? p1 : p2;
-}
 
 /**
  * Convert bike-space (mm, y-down, rear axle = 0,0) to SVG canvas coordinates.
@@ -210,70 +176,59 @@ export function calculateVisualizerData(
   const stemStart = v(headTubeTop.x, bb.y - params.stemHeight);
   const handlebar = v(stemStart.x + params.stemLength, stemStart.y);
 
-  // ── Body segment lengths (mm) ─────────────────────────────────────────────
-  const thighMm      = measurements.inseam      * 10 * LEG_SCALE * THIGH_RATIO;
-  const shinMm       = measurements.inseam      * 10 * LEG_SCALE * SHIN_RATIO;
-  const torsoMm      = measurements.torsoLength * 10;
-  const armMm        = measurements.armLength   * 10;
-  const neckMm       = measurements.height      * 10 * 0.13;
-  const footLengthMm = measurements.height      * 10 * FOOT_TO_HEIGHT_RATIO;
-  const footLever    = FOOT_CONTACT_PROP * footLengthMm;
-  const footFwd      = footLengthMm * (1 - FOOT_CONTACT_PROP);
+  // ── Rider joint positions (anchor-based inline formulas) ─────────────────
+  // All coordinates are in raw mm (same y-down system as bike-space).
+  // toSVG() is applied at the return statement.
 
-  const upperArmMm = armMm * UPPER_ARM_RATIO;
-  const foreArmMm  = armMm * FORE_ARM_RATIO;
-  const armReach   = armMm * ARM_REACH_RATIO;
+  // Hip: directly above saddle by 30 mm
+  const hip = v(saddle.x, saddle.y - 30);
 
-  // ── Hip ──────────────────────────────────────────────────────────────────
-  // Hip joint: forward of and above saddle surface.
-  // y-down: "above" = smaller y.
-  const hip = v(saddle.x + HIP_FORWARD_MM, saddle.y - 20);
+  // Leg segments (spec ratios: thigh = 53%, shin = 54% of inseam in mm)
+  const thighMm = measurements.inseam * 10 * 0.53;
+  const shinMm  = measurements.inseam * 10 * 0.54;
 
-  // ── Primary leg: 6-o'clock (pedal at bottom) ─────────────────────────────
-  // Pedal directly below BB (y-down: below = larger y)
-  const pedal6 = v(bb.x, bb.y + params.crankLength);
-
-  // Foot model (bike-fit-vis):
-  //   At 6-o'clock, foot is toe-slightly-down (15° below horizontal).
-  //   Heel is UP and BEHIND the ball of foot.
-  //   In y-down: ankle is at SMALLER y (higher) than pedal, and behind (-x).
-  const foot6Rad = FOOT_ANGLE_6_DEG * RAD;
-  const ankle6 = v(
-    pedal6.x - footLever * Math.cos(foot6Rad),
-    pedal6.y - footLever * Math.sin(foot6Rad)  // y-down: heel is UP = smaller y
-  );
-  // Toe tip: forward and slightly DOWN from pedal (toe-down at 15°)
-  const footTip6 = v(
-    pedal6.x + footFwd * Math.cos(foot6Rad),
-    pedal6.y + footFwd * Math.sin(foot6Rad)    // y-down: toe is DOWN = larger y
+  // Primary leg — crank at 6-o'clock: ankle directly below BB
+  const ankle6 = v(bb.x, bb.y + params.crankLength);
+  const legDx6   = ankle6.x - hip.x;
+  const legDy6   = ankle6.y - hip.y;
+  const legDist6 = Math.sqrt(legDx6 * legDx6 + legDy6 * legDy6);
+  const safe6    = Math.min(legDist6, thighMm + shinMm - 0.1);
+  const cosA6    = (thighMm * thighMm + safe6 * safe6 - shinMm * shinMm) / (2 * thighMm * safe6);
+  const angleA   = Math.acos(Math.max(-1, Math.min(1, cosA6)));
+  const base6    = Math.atan2(legDy6, legDx6);
+  // Subtract angle → knee goes forward (clockwise on-screen = toward front wheel)
+  const knee6 = v(
+    hip.x + thighMm * Math.cos(base6 - angleA),
+    hip.y + thighMm * Math.sin(base6 - angleA),
   );
 
-  // Knee: findJoint from hip and ankle; prefer forward (+x) to place knee in front
-  const knee6 = findJoint(hip, ankle6, thighMm, shinMm, v(1, 0));
-
-  // ── Secondary leg: 12-o'clock (pedal at top, dim) ────────────────────────
-  const pedal12 = v(bb.x, bb.y - params.crankLength);
-  const foot12Rad = FOOT_ANGLE_12_DEG * RAD;
-  const ankle12 = v(
-    pedal12.x - footLever * Math.cos(foot12Rad),
-    pedal12.y - footLever * Math.sin(foot12Rad)
+  // Secondary leg — crank at 12-o'clock: ankle directly above BB
+  const ankle12 = v(bb.x, bb.y - params.crankLength);
+  // Add angle → knee goes backward (opposite side of hip-ankle baseline)
+  const knee12 = v(
+    hip.x + thighMm * Math.cos(base6 + angleA),
+    hip.y + thighMm * Math.sin(base6 + angleA),
   );
-  const knee12 = findJoint(hip, ankle12, thighMm, shinMm, v(1, 0));
 
-  // ── Upper body ────────────────────────────────────────────────────────────
-  // Shoulder: two-circle intersection with hip (torso length) and handlebar (arm reach).
-  //   Prefer UPWARD: in y-down, up = v(0, -1) (smaller y = higher)
-  const shoulder = findJoint(hip, handlebar, torsoMm, armReach, v(0, -1));
+  // Shoulder: hip + torsoLength in direction of hip → handlebar
+  const torsoMm  = measurements.torsoLength * 10;
+  const hbDx     = handlebar.x - hip.x;
+  const hbDy     = handlebar.y - hip.y;
+  const torsoDir = Math.atan2(hbDy, hbDx);
+  const shoulder = v(
+    hip.x + torsoMm * Math.cos(torsoDir),
+    hip.y + torsoMm * Math.sin(torsoDir),
+  );
 
-  // Elbow: prefer DOWNWARD (arm droops below shoulder→handlebar line)
-  //   In y-down, down = v(0, +1)
-  const elbow = findJoint(shoulder, handlebar, upperArmMm, foreArmMm, v(0, 1));
-
+  // Wrist reaches to handlebar; elbow is mid-point drooped 30 mm downward
   const wrist = handlebar;
+  const elbow = v(
+    (shoulder.x + wrist.x) / 2,
+    (shoulder.y + wrist.y) / 2 + 30,
+  );
 
-  // Head: above shoulder, slight forward lean
-  //   y-down: above = smaller y → neckMm subtracted from y
-  const headCenter = v(shoulder.x + neckMm * 0.2, shoulder.y - neckMm);
+  // Head: directly above shoulder by 120 mm (neck length)
+  const headCenter = v(shoulder.x, shoulder.y - 120);
 
   // ── Angle calculations (matching analyze.ts conventions) ──────────────────
   // Knee bend = 180° − interior angle. Target 25-35° at 6-o'clock.
@@ -309,18 +264,15 @@ export function calculateVisualizerData(
       handlebar:      toSVG(handlebar),
     },
     rider: {
-      pedal6:     toSVG(pedal6),
-      ankle6:     toSVG(ankle6),
-      footTip6:   toSVG(footTip6),
-      knee6:      toSVG(knee6),
       hip:        toSVG(hip),
+      knee6:      toSVG(knee6),
+      ankle6:     toSVG(ankle6),
+      knee12:     toSVG(knee12),
+      ankle12:    toSVG(ankle12),
       shoulder:   toSVG(shoulder),
       elbow:      toSVG(elbow),
       wrist:      toSVG(wrist),
       headCenter: toSVG(headCenter),
-      pedal12:    toSVG(pedal12),
-      ankle12:    toSVG(ankle12),
-      knee12:     toSVG(knee12),
     },
     kneeAngle6,
     torsoAngle,

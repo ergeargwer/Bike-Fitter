@@ -16,12 +16,11 @@ import { Button } from "@/components/ui/button";
 
 // ── Colour constants ─────────────────────────────────────────────────────────
 const FRAME_COLOR = "#4A9EFF";
-const RIDER_COLOR = "#FF3333";   // bright red — main limbs
-const RIDER_DIM   = "#882222";   // dark red — secondary (12 o'clock) leg
-const JOINT_COLOR = "#FF6666";   // lighter red — joint dots
-const FOOT_COLOR  = "#FF4444";   // red — foot
-const HEAD_R      = 18;   // px (non-scaling)
-const JOINT_R     = 6;    // px (non-scaling) — slightly larger for visibility
+const RIDER_COLOR = "#E8E8E8";   // main limbs — light on dark background
+const RIDER_DIM   = "#555555";   // secondary (12 o'clock) leg — dimmed
+const JOINT_COLOR = "#FFFFFF";   // joint dots
+const HEAD_R      = 14;   // px (non-scaling)
+const JOINT_R     = 4;    // px (non-scaling)
 
 // Format SVG coordinate pair
 function p(pt: { x: number; y: number }) {
@@ -124,50 +123,41 @@ function BikeFrameSVG({ bike }: { bike: BikePositionsSVG }) {
 // ── Rider stickman ────────────────────────────────────────────────────────────
 function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
   const {
-    pedal6, ankle6, footTip6, knee6,
-    hip, shoulder, elbow, wrist, headCenter,
-    pedal12, ankle12, knee12,
+    hip, knee6, ankle6,
+    knee12, ankle12,
+    shoulder, elbow, wrist, headCenter,
   } = rider;
 
   return (
     <g>
       {/* ── Secondary leg (12 o'clock, dim) ─────────────────────────── */}
       <polyline
-        points={`${p(hip)} ${p(knee12)} ${p(ankle12)} ${p(pedal12)}`}
-        fill="none" stroke={RIDER_DIM} strokeWidth="5"
+        points={`${p(hip)} ${p(knee12)} ${p(ankle12)}`}
+        fill="none" stroke={RIDER_DIM} strokeWidth="2"
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round" strokeLinejoin="round"
       />
       <Dot pt={knee12}  fill={RIDER_DIM} />
       <Dot pt={ankle12} fill={RIDER_DIM} />
-      <Dot pt={pedal12} fill={RIDER_DIM} />
 
       {/* ── Primary leg (6 o'clock) ──────────────────────────────────── */}
-      {/* Foot: toe tip → ankle → pedal */}
-      <polyline
-        points={`${p(footTip6)} ${p(ankle6)} ${p(pedal6)}`}
-        fill="none" stroke={FOOT_COLOR} strokeWidth="5"
-        vectorEffect="non-scaling-stroke"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
-      {/* Thigh + shin */}
       <polyline
         points={`${p(hip)} ${p(knee6)} ${p(ankle6)}`}
-        fill="none" stroke={RIDER_COLOR} strokeWidth="6"
+        fill="none" stroke={RIDER_COLOR} strokeWidth="3"
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round" strokeLinejoin="round"
       />
 
-      {/* ── Torso ────────────────────────────────────────────────────── */}
+      {/* ── Spine (hip → shoulder) ───────────────────────────────────── */}
       <line x1={hip.x} y1={hip.y} x2={shoulder.x} y2={shoulder.y}
-        stroke={RIDER_COLOR} strokeWidth="6"
+        stroke={RIDER_COLOR} strokeWidth="3"
         vectorEffect="non-scaling-stroke" strokeLinecap="round"
       />
 
-      {/* ── Arm ──────────────────────────────────────────────────────── */}
+      {/* ── Arm (shoulder → elbow → wrist) ───────────────────────────── */}
       <polyline
         points={`${p(shoulder)} ${p(elbow)} ${p(wrist)}`}
-        fill="none" stroke={RIDER_COLOR} strokeWidth="5"
+        fill="none" stroke={RIDER_COLOR} strokeWidth="3"
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round" strokeLinejoin="round"
       />
@@ -176,7 +166,7 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
       <circle
         cx={headCenter.x} cy={headCenter.y}
         r={HEAD_R}
-        fill="none" stroke={RIDER_COLOR} strokeWidth="5"
+        fill="none" stroke={RIDER_COLOR} strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />
 
@@ -184,7 +174,6 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
       <Dot pt={hip}      />
       <Dot pt={knee6}    />
       <Dot pt={ankle6}   />
-      <Dot pt={pedal6}   />
       <Dot pt={shoulder} />
       <Dot pt={elbow}    />
       <Dot pt={wrist}    />
