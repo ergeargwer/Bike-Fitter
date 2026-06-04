@@ -211,12 +211,13 @@ export function calculateVisualizerData(
   const handlebar = v(stemStart.x + params.stemLength, stemStart.y);
 
   // ── Body segment lengths (mm) ─────────────────────────────────────────────
-  const thighMm      = measurements.inseam      * 10 * LEG_SCALE * THIGH_RATIO;
-  const shinMm       = measurements.inseam      * 10 * LEG_SCALE * SHIN_RATIO;
-  const torsoMm      = measurements.torsoLength * 10;
-  const armMm        = measurements.armLength   * 10;
-  const neckMm       = measurements.height      * 10 * 0.13;
-  const footLengthMm = measurements.height      * 10 * FOOT_TO_HEIGHT_RATIO;
+  // measurements fields are already in mm (height=1750, inseam=820, etc.)
+  const thighMm      = measurements.inseam      * LEG_SCALE * THIGH_RATIO;
+  const shinMm       = measurements.inseam      * LEG_SCALE * SHIN_RATIO;
+  const torsoMm      = measurements.torsoLength;
+  const armMm        = measurements.armLength;
+  const neckMm       = measurements.height      * 0.13;
+  const footLengthMm = measurements.height      * FOOT_TO_HEIGHT_RATIO;
   const footLever    = FOOT_CONTACT_PROP * footLengthMm;
   const footFwd      = footLengthMm * (1 - FOOT_CONTACT_PROP);
 
@@ -285,8 +286,10 @@ export function calculateVisualizerData(
     angleDeg(sub(shoulder, hip), v(0, -1))
   );
 
-  // Hip angle: interior(shoulder, hip, knee6). Target 45-65°.
-  const hipAngle = Math.round(interiorAngle(shoulder, hip, knee6));
+  // 髖屈曲角：軀幹（hip→shoulder）與大腿（hip→knee6）的夾角。
+  // shoulder 在 hip 的上方偏前，knee6 在下方偏前，interiorAngle 回傳鈍角（>90°），
+  // 取補角得到 bike fitting 慣用的髖屈曲角。目標 45-65°。
+  const hipAngle = Math.round(180 - interiorAngle(shoulder, hip, knee6));
 
   // Elbow angle: interior(shoulder, elbow, wrist). Target 150-165°.
   const elbowAngle = Math.round(interiorAngle(shoulder, elbow, wrist));
