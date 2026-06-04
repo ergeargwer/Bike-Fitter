@@ -32,9 +32,8 @@ const RIGHT_MM        = 536; // clearance right of front axle (wheel + bar overh
 const BELOW_GROUND_MM = 150; // margin below ground line
 
 // ── Body segment constants (from bike-fit-vis reference) ──────────────────────
-const LEG_SCALE             = 1.09;   // anatomical leg (hip→ankle) = 109% inseam
-const THIGH_RATIO           = 0.53;   // thigh is 53% of total leg
-const SHIN_RATIO            = 0.47;   // shin is 47% of total leg
+const THIGH_RATIO           = 0.53;   // thigh is 53% of inseam
+const SHIN_RATIO            = 0.54;   // shin  is 54% of inseam
 const FOOT_TO_HEIGHT_RATIO  = 0.152;  // footLength = 15.2% of height
 const FOOT_CONTACT_PROP     = 0.65;   // ankle is 65% from ball toward heel
 const FOOT_ANGLE_6_DEG      = 15;     // foot angle at 6-o'clock (toe slightly down)
@@ -212,8 +211,9 @@ export function calculateVisualizerData(
 
   // ── Body segment lengths (mm) ─────────────────────────────────────────────
   // measurements fields are already in mm (height=1750, inseam=820, etc.)
-  const thighMm      = measurements.inseam      * LEG_SCALE * THIGH_RATIO;
-  const shinMm       = measurements.inseam      * LEG_SCALE * SHIN_RATIO;
+  // No LEG_SCALE: bike fitting saddle height corresponds directly to inseam
+  const thighMm      = measurements.inseam      * THIGH_RATIO;
+  const shinMm       = measurements.inseam      * SHIN_RATIO;
   const torsoMm      = measurements.torsoLength;
   const armMm        = measurements.armLength;
   const neckMm       = measurements.height      * 0.13;
@@ -262,11 +262,16 @@ export function calculateVisualizerData(
   const knee12 = findJoint(hip, ankle12, thighMm, shinMm, v(1, 0));
 
   // ── Upper body ────────────────────────────────────────────────────────────
-  // Shoulder: two-circle intersection with hip (torso length) and handlebar (arm reach).
-  //   Prefer UPWARD: in y-down, up = v(0, -1) (smaller y = higher)
-  const shoulder = findJoint(hip, handlebar, torsoMm, armReach, v(0, -1));
+  // Shoulder: anchor-based — hip + torsoMm in direction of hip→handlebar.
+  // Avoids the findJoint prefer=upward artefact that placed shoulder too high.
+  const hipToBar = sub(handlebar, hip);
+  const torsoDir = nrm(hipToBar);
+  const shoulder = v(
+    hip.x + torsoMm * torsoDir.x,
+    hip.y + torsoMm * torsoDir.y
+  );
 
-  // Elbow: prefer DOWNWARD (arm droops below shoulder→handlebar line)
+  // Elbow: findJoint from shoulder to wrist, prefer DOWNWARD (natural droop).
   //   In y-down, down = v(0, +1)
   const elbow = findJoint(shoulder, handlebar, upperArmMm, foreArmMm, v(0, 1));
 
