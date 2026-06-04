@@ -1,2 +1,1 @@
-- [Visualizer measurement units](visualizer-units.md) — home.tsx stores cm (82, 60, 65); visualizer.ts must ×10 before any mm geometry
-- [Shoulder/elbow joint model](joint-model.md) — findJoint(hip,bar,torsoMm,armReach,prefer_up) for shoulder; ARM_REACH_RATIO=0.981 gives elbowAngle≈157°
+- [PhotoFit canvas approach](photofit-canvas.md) — img tag shows photo, transparent canvas overlays it; pointer events on canvas only; touchAction:none for drag.

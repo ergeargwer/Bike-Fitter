@@ -1,0 +1,118 @@
+請在現有 Bike Fitter app 新增「照片標定模擬」功能頁面，
+不修改現有任何頁面。
+
+## 新增頁面：PhotoFit.tsx
+路徑：artifacts/bike-fitter/src/pages/PhotoFit.tsx
+底部 Tab 新增「照片」頁籤（圖示用相機）
+
+---
+
+## 功能流程（共 4 個步驟）
+
+### Step 1：上傳照片
+- 顯示上傳區域，接受 jpg/png
+- 照片載入後顯示於 canvas，等比縮放至容器寬度（最大 390px）
+- 進入 Step 2
+
+### Step 2：手動標定 7 個關鍵點
+逐一引導使用者點擊照片上的位置，每次只標定一個點：
+
+標定順序與說明文字：
+1. 後輪軸心 → 「請點擊後輪軸心位置」
+2. 前輪軸心 → 「請點擊前輪軸心位置」
+3. BB 中心（曲柄軸）→ 「請點擊曲柄中心（BB）位置」
+4. 座墊頂端 → 「請點擊座墊最高點」
+5. 把手中心 → 「請點擊把手位置」
+6. 髖關節 → 「請點擊騎士髖部位置（若有人在車上）」
+7. 肩關節 → 「請點擊騎士肩膀位置（若有人在車上）」
+
+步驟 6、7 可跳過（照片上沒有騎士時）
+
+每個點標定後：
+- 在照片上顯示彩色圓點（不同顏色區分）與標籤文字
+- 顯示「重新點選」按鈕可修正當前點
+- 顯示「下一個」按鈕進入下一點
+
+點的顏色對應：
+- 後輪軸：#888888
+- 前輪軸：#888888
+- BB：#4A9EFF
+- 座墊：#4A9EFF
+- 把手：#4A9EFF
+- 髖：#FF4444
+- 肩：#FF4444
+
+### Step 3：確認與微調
+顯示所有已標定的點在照片上，
+使用者可拖曳任一圓點微調位置。
+顯示「確認，開始模擬」按鈕。
+
+### Step 4：火柴人疊加顯示
+
+#### 從標定點推算幾何數據
+輪距（wheelbase）= 後輪軸到前輪軸的距離（像素換算 mm）：
+  scale = 1450 / pixelDist(rearAxle, frontAxle)
+  // 700c 標準軸距約 970-980mm，但用輪子直徑更準確
+  // 用兩輪間距對應 wheelbase=977mm（Mamba S）反推 scale
+
+BB 位置、座墊位置、把手位置直接使用標定點座標。
+
+#### 火柴人計算
+從標定點直接計算人體關節，不依賴 visualizer.ts：
+
+// 所有座標為照片像素座標
+const hip        = markedPoints.hip ?? aboveSaddle(markedPoints.saddle, 20*scale)
+const handlebar  = markedPoints.handlebar
+const bb         = markedPoints.bb
+const saddle     = markedPoints.saddle
+
+// 腿部（與 visualizer.ts 相同邏輯）
+const crankPx    = 165 * scale
+const ankle      = { x: bb.x, y: bb.y + crankPx }
+const thighPx    = inseam * scale * 0.53
+const shinPx     = inseam * scale * 0.54
+// 用 findJoint 計算膝蓋（與 visualizer.ts 相同 findJoint 函式）
+const knee       = findJoint(hip, ankle, thighPx, shinPx, {x:1, y:0})
+
+// 上半身
+const torsoDir   = normalize(sub(handlebar, hip))
+const shoulder   = add(hip, scale_v(torsoDir, torso * scale))
+const elbow      = findJoint(shoulder, handlebar, arm*0.53*scale, arm*0.47*scale, {x:0,y:1})
+const headCenter = { x: shoulder.x, y: shoulder.y - height*0.13*scale }
+
+#### Canvas 疊加繪製
+在原始照片上方用 Canvas 2D API 繪製：
+
+火柴人主線：strokeStyle='rgba(255,255,255,0.9)', lineWidth=3
+- headCenter → shoulder → hip → knee → ankle
+- shoulder → elbow → handlebar
+
+對側腿（較淡）：strokeStyle='rgba(255,255,255,0.35)', lineWidth=2
+關節圓點：fillStyle='#FFFFFF', r=5
+頭部圓：strokeStyle='rgba(255,255,255,0.9)', r=14, fill=none
+
+標定點圓點保留顯示（半透明）
+
+#### 角度指標（疊加在照片右上角）
+半透明黑色背景小卡，顯示：
+- 膝蓋角、軀幹角、髖部角、手肘角
+- 每項顯示數值與符合/偏高/偏低
+
+---
+
+## 資料來源
+使用者身體數據從 LocalStorage 'measurements' 讀取（與首頁共用）。
+若未輸入，顯示提示「請先至首頁輸入身體數據」。
+
+## 儲存
+標定點座標與照片（base64）存入 LocalStorage 'photoFitData'，
+下次進入頁面可選擇載入上次結果。
+
+---
+
+## 技術規格
+- 使用 HTML5 Canvas 繪製（不用 SVG）
+- canvas 疊加在 img 元素上方（position: absolute）
+- 行動裝置支援 touch 事件（拖曳微調）
+- 不修改 visualizer.ts、BikeVisualizer.tsx 及其他現有頁面
+- 維持深色主題、無 emoji、繁體中文

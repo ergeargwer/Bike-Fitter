@@ -7,6 +7,7 @@ import { Analyze } from "@/pages/analyze";
 import { Results } from "@/pages/results";
 import { BikeVisualizer } from "@/pages/BikeVisualizer";
 import { History } from "@/pages/history";
+import { PhotoFit } from "@/pages/PhotoFit";
 
 function AppContent() {
   const { activeTab } = useAppContext();
@@ -18,6 +19,7 @@ function AppContent() {
       {activeTab === "analyze" && <Analyze />}
       {activeTab === "results" && <Results />}
       {activeTab === "visualizer" && <BikeVisualizer />}
+      {activeTab === "photo" && <PhotoFit />}
       {activeTab === "history" && <History />}
     </Layout>
   );

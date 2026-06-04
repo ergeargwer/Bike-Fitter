@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Home, Bike, Activity, Clock, Layers } from "lucide-react";
+import { Home, Bike, Activity, Clock, Layers, Camera } from "lucide-react";
 import { useAppContext } from "@/lib/context";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { id: "bikes" as const, label: "車型", icon: Bike },
     { id: "analyze" as const, label: "分析", icon: Activity },
     { id: "visualizer" as const, label: "模擬", icon: Layers },
+    { id: "photo" as const, label: "照片", icon: Camera },
     { id: "history" as const, label: "紀錄", icon: Clock },
   ];
 
