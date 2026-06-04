@@ -8,6 +8,7 @@
     "scheme": "bike-fitter-mobile",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "description": "單車 Fitting 分析工具，使用 AI 姿勢偵測計算最佳騎乘位置。透過鏡頭或影片分析騎乘姿態，即時偵測膝蓋、髖部、軀幹、手肘等關節角度，並根據 LeMond 公式提供座墊高度建議及符合度評估。",
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -15,8 +16,11 @@
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.bikefitter.mobile",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "需要相機進行騎乘姿態分析，偵測關節角度以提供 Fitting 建議。"
+        "NSCameraUsageDescription": "需要相機進行騎乘姿態分析，偵測關節角度以提供 Fitting 建議。",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -38,6 +42,20 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "appStoreKeywords": [
+        "bike fitting",
+        "bicycle",
+        "cycling",
+        "pose detection",
+        "saddle height",
+        "knee angle",
+        "LeMond",
+        "單車",
+        "fitting",
+        "姿勢分析"
+      ]
     }
   }
 }
