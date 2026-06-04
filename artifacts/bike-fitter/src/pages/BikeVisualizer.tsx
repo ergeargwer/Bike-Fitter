@@ -123,7 +123,7 @@ function BikeFrameSVG({ bike }: { bike: BikePositionsSVG }) {
 // ── Rider stickman ────────────────────────────────────────────────────────────
 function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
   const {
-    pedal6, ankle6, footTip6, knee6,
+    pedal6, ankle6, heel6, footTip6, knee6,
     hip, shoulder, elbow, wrist, headCenter,
   } = rider;
 
@@ -142,16 +142,16 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
         stroke="#CCCCCC" strokeWidth="7"
         vectorEffect="non-scaling-stroke" strokeLinecap="round"
       />
-      {/* Foot: toe tip → ankle → pedal axle */}
+      {/* Foot outline: toe tip → ball(pedal) → heel — natural foot shape */}
       <polyline
-        points={`${p(footTip6)} ${p(ankle6)} ${p(pedal6)}`}
+        points={`${p(footTip6)} ${p(pedal6)} ${p(heel6)}`}
         fill="none" stroke={FOOT_COLOR} strokeWidth="5"
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round" strokeLinejoin="round"
       />
       {/* Toe tip dot */}
       <Dot pt={footTip6} r={5} fill={FOOT_COLOR} />
-      {/* Thigh + shin */}
+      {/* Thigh + shin: hip → knee → ankle joint */}
       <polyline
         points={`${p(hip)} ${p(knee6)} ${p(ankle6)}`}
         fill="none" stroke={RIDER_COLOR} strokeWidth="6"

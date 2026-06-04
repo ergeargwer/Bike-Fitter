@@ -35,8 +35,10 @@ const BELOW_GROUND_MM = 150; // margin below ground line
 const THIGH_RATIO           = 0.53;   // thigh is 53% of inseam
 const SHIN_RATIO            = 0.54;   // shin  is 54% of inseam
 const FOOT_TO_HEIGHT_RATIO  = 0.152;  // footLength = 15.2% of height
-const FOOT_CONTACT_PROP     = 0.65;   // ankle is 65% from ball toward heel
+const HEEL_PROP             = 0.65;   // heel is 65% of foot length behind ball (ball-to-heel / foot length)
 const FOOT_ANGLE_6_DEG      = 15;     // foot angle at 6-o'clock (toe slightly down)
+const ANKLE_BEHIND_MM       = 15;     // ankle joint (malleolus) is ~15 mm behind ball of foot
+const ANKLE_ABOVE_MM        = 65;     // ankle joint is ~65 mm above ball of foot (shoe + anatomy)
 const HIP_FORWARD_MM        = 25;     // hip joint is ~25 mm forward of saddle
 const UPPER_ARM_RATIO       = 0.558;  // upperArm = 55.8% of arm length
 const FORE_ARM_RATIO        = 0.442;  // foreArm  = 44.2% of arm length
@@ -67,7 +69,8 @@ export interface BikePositionsSVG {
 
 export interface RiderPositionsSVG {
   pedal6:     Vec2;
-  ankle6:     Vec2;
+  ankle6:     Vec2;  // actual ankle joint (malleolus) — used for leg geometry & ring
+  heel6:      Vec2;  // heel tip — used for foot outline drawing only
   footTip6:   Vec2;
   knee6:      Vec2;
   hip:        Vec2;
@@ -214,8 +217,7 @@ export function calculateVisualizerData(
   const armMm        = measurements.armLength   * 10;
   const neckMm       = measurements.height      * 10 * 0.13;
   const footLengthMm = measurements.height      * 10 * FOOT_TO_HEIGHT_RATIO;
-  const footLever    = FOOT_CONTACT_PROP * footLengthMm;
-  const footFwd      = footLengthMm * (1 - FOOT_CONTACT_PROP);
+  const footFwd      = footLengthMm * (1 - HEEL_PROP);  // ball-of-foot to toe tip
 
   const upperArmMm = armMm * UPPER_ARM_RATIO;
   const foreArmMm  = armMm * FORE_ARM_RATIO;
@@ -230,22 +232,33 @@ export function calculateVisualizerData(
   // Pedal directly below BB (y-down: below = larger y)
   const pedal6 = v(bb.x, bb.y + params.crankLength);
 
-  // Foot model (bike-fit-vis):
-  //   At 6-o'clock, foot is toe-slightly-down (15° below horizontal).
-  //   Heel is UP and BEHIND the ball of foot.
-  //   In y-down: ankle is at SMALLER y (higher) than pedal, and behind (-x).
+  // Foot model:
+  //   At 6-o'clock, foot is toe-slightly-down (FOOT_ANGLE_6_DEG° below horizontal).
+  //   The ball of foot sits on the pedal. Heel is behind and slightly above ball.
+  //
+  //   Two separate points:
+  //   • heel6 — heel tip for drawing the foot outline (65% of foot length behind ball)
+  //   • ankle6 — actual ankle joint (malleolus) for leg geometry:
+  //               ~15 mm behind ball, ~65 mm above ball (shoe stack + anatomy)
   const foot6Rad = FOOT_ANGLE_6_DEG * RAD;
-  const ankle6 = v(
-    pedal6.x - footLever * Math.cos(foot6Rad),
-    pedal6.y - footLever * Math.sin(foot6Rad)  // y-down: heel is UP = smaller y
+  const heelMm   = HEEL_PROP * footLengthMm;   // ball-to-heel distance along foot axis
+  const heel6 = v(
+    pedal6.x - heelMm * Math.cos(foot6Rad),
+    pedal6.y - heelMm * Math.sin(foot6Rad)     // y-down: heel is UP = smaller y
   );
-  // Toe tip: forward and slightly DOWN from pedal (toe-down at 15°)
+  // Ankle joint (malleolus): roughly above the ball of foot, independent of foot angle.
+  // y-down: above = smaller y.
+  const ankle6 = v(
+    pedal6.x - ANKLE_BEHIND_MM,
+    pedal6.y - ANKLE_ABOVE_MM
+  );
+  // Toe tip: forward and slightly DOWN from pedal (toe-down at foot angle)
   const footTip6 = v(
     pedal6.x + footFwd * Math.cos(foot6Rad),
     pedal6.y + footFwd * Math.sin(foot6Rad)    // y-down: toe is DOWN = larger y
   );
 
-  // Knee: findJoint from hip and ankle; prefer forward (+x) to place knee in front
+  // Knee: findJoint from hip and ankle JOINT (not heel); prefer forward (+x)
   const knee6 = findJoint(hip, ankle6, thighMm, shinMm, v(1, 0));
 
   // ── Upper body ────────────────────────────────────────────────────────────
@@ -302,6 +315,7 @@ export function calculateVisualizerData(
     rider: {
       pedal6:     toSVG(pedal6),
       ankle6:     toSVG(ankle6),
+      heel6:      toSVG(heel6),
       footTip6:   toSVG(footTip6),
       knee6:      toSVG(knee6),
       hip:        toSVG(hip),
