@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FittingRecord, useAppContext } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { exportPdf } from "@/lib/pdf";
 
 function buildShareText(record: FittingRecord): string {
   const date = formatDate(record.date);
@@ -112,6 +113,15 @@ function HistoryItem({
     }
   };
 
+  const handleExportPdf = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await exportPdf(record);
+    } catch {
+      Alert.alert("匯出失敗", "無法產生 PDF，請稍後再試");
+    }
+  };
+
   const goodCount = record.analyses.filter((a) => a.status === "符合").length;
   const totalCount = record.analyses.length;
 
@@ -169,6 +179,14 @@ function HistoryItem({
             testID={`share-${record.id}`}
           >
             <Feather name="share-2" size={16} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={handleExportPdf}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            testID={`pdf-${record.id}`}
+          >
+            <Feather name="file-text" size={16} color={colors.primary} />
           </Pressable>
           <Pressable
             onPress={handleDelete}

@@ -17,6 +17,7 @@ import { AngleAnalysis, FittingRecord, KOPSAnalysis, useAppContext } from "@/con
 import { useColors } from "@/hooks/useColors";
 import { analyzeAngles, analyzeKOPS, calculateFitScore } from "@/lib/analyze";
 import { calculateLeMond } from "@/lib/lemond";
+import { exportPdf } from "@/lib/pdf";
 
 function statusColor(status: "符合" | "偏高" | "偏低", colors: ReturnType<typeof useColors>) {
   if (status === "符合") return colors.success;
@@ -181,6 +182,26 @@ export default function ResultsScreen() {
     router.push("/(tabs)/analyze");
   };
 
+  const handleExportPdf = async () => {
+    if (!measurements || !sixOClockAngles) return;
+    const record: FittingRecord = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 9),
+      date: new Date().toISOString(),
+      measurements,
+      sixOClockAngles,
+      threeOClockAngles: threeOClockAngles ?? undefined,
+      lemond,
+      analyses: computed.allAnalyses,
+      kops,
+      fitScore,
+    };
+    try {
+      await exportPdf(record);
+    } catch {
+      Alert.alert("匯出失敗", "無法產生 PDF，請稍後再試");
+    }
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View
@@ -288,6 +309,24 @@ export default function ResultsScreen() {
             <Feather name="save" size={18} color={colors.primaryForeground} />
             <Text style={[styles.saveBtnTxt, { color: colors.primaryForeground }]}>
               儲存記錄
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={handleExportPdf}
+            style={({ pressed }) => [
+              styles.newBtn,
+              {
+                backgroundColor: colors.secondary,
+                borderColor: colors.border,
+                opacity: pressed ? 0.85 : 1,
+                borderRadius: colors.radiusMd,
+              },
+            ]}
+            testID="button-export-pdf"
+          >
+            <Feather name="file-text" size={16} color={colors.mutedForeground} />
+            <Text style={[styles.newBtnTxt, { color: colors.mutedForeground }]}>
+              匯出 PDF
             </Text>
           </Pressable>
           <Pressable
