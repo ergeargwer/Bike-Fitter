@@ -90,7 +90,7 @@ export default function AnalyzeScreen() {
           </Text>
           <Pressable
             onPress={() => router.push("/(tabs)")}
-            style={[styles.backBtn, { backgroundColor: colors.primary }]}
+            style={[styles.backBtn, { backgroundColor: colors.primary, borderRadius: colors.radiusMd }]}
           >
             <Text style={[styles.backBtnTxt, { color: colors.primaryForeground }]}>
               前往首頁
@@ -164,7 +164,7 @@ export default function AnalyzeScreen() {
           </Text>
           <Pressable
             onPress={() => setWebviewError(null)}
-            style={[styles.backBtn, { backgroundColor: colors.primary, marginTop: 16 }]}
+            style={[styles.backBtn, { backgroundColor: colors.primary, marginTop: 16, borderRadius: colors.radiusMd }]}
           >
             <Text style={[styles.backBtnTxt, { color: colors.primaryForeground }]}>
               重試
@@ -211,7 +211,7 @@ export default function AnalyzeScreen() {
             onPress={handleGoToResults}
             style={({ pressed }) => [
               styles.resultsBtn,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1, borderRadius: colors.radiusMd },
             ]}
             testID="button-go-to-results"
           >
@@ -252,7 +252,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 52,
-    borderRadius: 14,
   },
   resultsBtnTxt: { fontSize: 16, fontWeight: "700" },
   emptyWrap: {
@@ -268,7 +267,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
   },
   backBtnTxt: { fontSize: 16, fontWeight: "600" },
   errorWrap: {

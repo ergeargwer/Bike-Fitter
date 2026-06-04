@@ -30,7 +30,7 @@ function AngleCard({ analysis }: { analysis: AngleAnalysis }) {
   const isGood = analysis.status === "符合";
 
   return (
-    <View style={[styles.angleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.angleCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
       <View style={styles.angleHeader}>
         <View style={styles.angleLeft}>
           <Text style={[styles.angleName, { color: colors.foreground }]}>{analysis.name}</Text>
@@ -38,7 +38,7 @@ function AngleCard({ analysis }: { analysis: AngleAnalysis }) {
             {analysis.description}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: sc + "20", borderColor: sc + "40" }]}>
+        <View style={[styles.statusBadge, { backgroundColor: sc + "20", borderColor: sc + "40", borderRadius: colors.radiusMd }]}>
           <Text style={[styles.statusTxt, { color: sc }]}>{analysis.status}</Text>
         </View>
       </View>
@@ -59,7 +59,7 @@ function AngleCard({ analysis }: { analysis: AngleAnalysis }) {
         </View>
       </View>
       {!isGood && (
-        <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30" }]}>
+        <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30", borderRadius: colors.radiusMd }]}>
           <Feather name="info" size={14} color={sc} />
           <Text style={[styles.suggestionTxt, { color: sc }]}>{analysis.suggestion}</Text>
         </View>
@@ -73,7 +73,7 @@ function KOPSCard({ kops }: { kops: KOPSAnalysis }) {
   const sc = kops.isOptimal ? colors.success : colors.warning;
 
   return (
-    <View style={[styles.angleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.angleCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
       <View style={styles.angleHeader}>
         <View style={styles.angleLeft}>
           <Text style={[styles.angleName, { color: colors.foreground }]}>KOPS 膝蓋對齊</Text>
@@ -81,13 +81,13 @@ function KOPSCard({ kops }: { kops: KOPSAnalysis }) {
             3 點鐘位置膝蓋垂直對齊分析
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: sc + "20", borderColor: sc + "40" }]}>
+        <View style={[styles.statusBadge, { backgroundColor: sc + "20", borderColor: sc + "40", borderRadius: colors.radiusMd }]}>
           <Text style={[styles.statusTxt, { color: sc }]}>{kops.isOptimal ? "符合" : "需調整"}</Text>
         </View>
       </View>
       <Text style={[styles.kopsDesc, { color: colors.foreground }]}>{kops.description}</Text>
       {!kops.isOptimal && (
-        <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30" }]}>
+        <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30", borderRadius: colors.radiusMd }]}>
           <Feather name="info" size={14} color={sc} />
           <Text style={[styles.suggestionTxt, { color: sc }]}>{kops.suggestion}</Text>
         </View>
@@ -132,7 +132,7 @@ export default function ResultsScreen() {
           </Text>
           <Pressable
             onPress={() => router.push("/(tabs)/analyze")}
-            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            style={[styles.actionBtn, { backgroundColor: colors.primary, borderRadius: colors.radiusMd }]}
           >
             <Text style={[styles.actionBtnTxt, { color: colors.primaryForeground }]}>
               前往分析
@@ -210,7 +210,7 @@ export default function ResultsScreen() {
         <View
           style={[
             styles.scoreCard,
-            { backgroundColor: colors.card, borderColor: scoreColor + "40" },
+            { backgroundColor: colors.card, borderColor: scoreColor + "40", borderRadius: colors.radiusXl },
           ]}
         >
           <Text style={[styles.scoreNum, { color: scoreColor }]}>{fitScore}</Text>
@@ -220,7 +220,7 @@ export default function ResultsScreen() {
           </Text>
         </View>
 
-        <View style={[styles.lemondCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.lemondCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>座高建議</Text>
           <View style={styles.lemondRow}>
             <View style={styles.lemondItem}>
@@ -281,7 +281,7 @@ export default function ResultsScreen() {
             onPress={handleSave}
             style={({ pressed }) => [
               styles.saveBtn,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1, borderRadius: colors.radiusMd },
             ]}
             testID="button-save-bottom"
           >
@@ -298,6 +298,7 @@ export default function ResultsScreen() {
                 backgroundColor: colors.secondary,
                 borderColor: colors.border,
                 opacity: pressed ? 0.85 : 1,
+                borderRadius: colors.radiusMd,
               },
             ]}
           >
@@ -326,7 +327,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 16, gap: 12 },
   scoreCard: {
-    borderRadius: 16,
     borderWidth: 2,
     padding: 24,
     alignItems: "center",
@@ -336,12 +336,11 @@ const styles = StyleSheet.create({
   scoreLabel: { fontSize: 22, fontWeight: "700" },
   scoreSub: { fontSize: 16 },
   lemondCard: {
-    borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     gap: 12,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "600" },
+  sectionTitle: { fontSize: 18, fontWeight: "600" },
   lemondRow: { flexDirection: "row", gap: 16 },
   lemondItem: { flex: 1 },
   lemondLabel: { fontSize: 16, marginBottom: 4 },
@@ -352,7 +351,6 @@ const styles = StyleSheet.create({
   section: { gap: 8 },
   sectionLabel: { fontSize: 16, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   angleCard: {
-    borderRadius: 12,
     borderWidth: 1,
     padding: 14,
     gap: 10,
@@ -361,7 +359,7 @@ const styles = StyleSheet.create({
   angleLeft: { flex: 1, gap: 2 },
   angleName: { fontSize: 16, fontWeight: "600" },
   angleDesc: { fontSize: 16, lineHeight: 22 },
-  statusBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  statusBadge: { borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
   statusTxt: { fontSize: 16, fontWeight: "600" },
   angleValues: { flexDirection: "row", gap: 16 },
   angleValueItem: { flex: 1 },
@@ -371,7 +369,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
-    borderRadius: 8,
     borderWidth: 1,
     padding: 10,
   },
@@ -384,7 +381,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 52,
-    borderRadius: 14,
   },
   saveBtnTxt: { fontSize: 16, fontWeight: "700" },
   newBtn: {
@@ -393,7 +389,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     height: 48,
-    borderRadius: 14,
     borderWidth: 1,
   },
   newBtnTxt: { fontSize: 16, fontWeight: "600" },
@@ -406,6 +401,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 20, fontWeight: "700", marginTop: 8 },
   emptyDesc: { fontSize: 16, textAlign: "center" },
-  actionBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  actionBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 12 },
   actionBtnTxt: { fontSize: 16, fontWeight: "600" },
 });

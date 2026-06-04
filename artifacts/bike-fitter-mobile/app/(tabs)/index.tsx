@@ -39,6 +39,7 @@ function MeasurementInput({
             backgroundColor: colors.secondary,
             color: colors.foreground,
             borderColor: colors.border,
+            borderRadius: colors.radiusMd,
           },
         ]}
         value={value}
@@ -103,7 +104,7 @@ export default function HomeScreen() {
           { paddingTop: topPad + 16, backgroundColor: colors.background, borderBottomColor: colors.border },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Bike Fitter</Text>
+        <Text style={[styles.headerTitle, { color: colors.primary }]}>Bike Fitter</Text>
         <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
           專業單車 Fitting 分析
         </Text>
@@ -118,7 +119,7 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>車種</Text>
           <View style={styles.bikeTypeRow}>
             {(["road", "triathlon"] as const).map((type) => {
@@ -132,6 +133,7 @@ export default function HomeScreen() {
                     {
                       backgroundColor: active ? colors.primary : colors.secondary,
                       borderColor: active ? colors.primary : colors.border,
+                      borderRadius: colors.radiusMd,
                     },
                   ]}
                   testID={`bike-type-${type}`}
@@ -150,7 +152,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>身體數據</Text>
           <View style={styles.inputGrid}>
             <MeasurementInput label="身高 (cm)" value={height} onChangeText={setHeight} placeholder="175" />
@@ -165,7 +167,7 @@ export default function HomeScreen() {
             style={[
               styles.card,
               styles.resultCard,
-              { backgroundColor: colors.card, borderColor: colors.primary + "40" },
+              { backgroundColor: colors.card, borderColor: colors.primary + "40", borderRadius: colors.radiusXl },
             ]}
           >
             <View style={styles.resultHeader}>
@@ -226,6 +228,7 @@ export default function HomeScreen() {
             {
               backgroundColor: isValid ? colors.primary : colors.secondary,
               opacity: pressed ? 0.8 : 1,
+              borderRadius: colors.radiusMd,
             },
           ]}
           testID="button-start-analyze"
@@ -256,22 +259,20 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 26, fontWeight: "700", letterSpacing: -0.5 },
+  headerTitle: { fontSize: 24, fontWeight: "700", letterSpacing: -0.5 },
   headerSub: { fontSize: 16, marginTop: 2 },
   scroll: { flex: 1 },
   content: { padding: 16, gap: 12 },
   card: {
-    borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     gap: 12,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "600" },
+  sectionTitle: { fontSize: 18, fontWeight: "600" },
   bikeTypeRow: { flexDirection: "row", gap: 10 },
   bikeTypeBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 10,
     borderWidth: 1.5,
     alignItems: "center",
   },
@@ -281,7 +282,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 16, fontWeight: "500" },
   input: {
     height: 48,
-    borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 14,
     fontSize: 16,
@@ -303,7 +303,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     height: 56,
-    borderRadius: 14,
     marginTop: 4,
   },
   analyzeBtnTxt: { fontSize: 17, fontWeight: "700" },

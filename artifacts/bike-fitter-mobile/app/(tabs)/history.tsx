@@ -69,7 +69,7 @@ function HistoryItem({
   const totalCount = record.analyses.length;
 
   return (
-    <View style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radiusXl }]}>
       <View style={styles.itemTop}>
         <View style={styles.itemLeft}>
           <Text style={[styles.itemDate, { color: colors.mutedForeground }]}>
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 10 },
   emptyContainer: { flex: 1 },
   item: {
-    borderRadius: 12,
     borderWidth: 1,
     padding: 14,
     gap: 10,

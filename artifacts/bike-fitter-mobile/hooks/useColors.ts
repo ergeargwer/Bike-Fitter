@@ -20,5 +20,12 @@ export function useColors() {
     scheme === "dark" && "dark" in colors
       ? (colors as Record<string, typeof colors.light>).dark
       : colors.light;
-  return { ...palette, radius: colors.radius };
+  return {
+    ...palette,
+    radius: colors.radius,
+    radiusSm: colors.radiusSm,
+    radiusMd: colors.radiusMd,
+    radiusLg: colors.radiusLg,
+    radiusXl: colors.radiusXl,
+  };
 }
