@@ -113,7 +113,7 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Platform.OS === "web" ? 120 : 120 },
+          { paddingBottom: 120 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 26, fontWeight: "700", letterSpacing: -0.5 },
-  headerSub: { fontSize: 14, marginTop: 2 },
+  headerSub: { fontSize: 16, marginTop: 2 },
   scroll: { flex: 1 },
   content: { padding: 16, gap: 12 },
   card: {
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: "center",
   },
-  bikeTypeTxt: { fontSize: 15, fontWeight: "600" },
+  bikeTypeTxt: { fontSize: 16, fontWeight: "600" },
   inputGrid: { gap: 12 },
   inputGroup: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "500" },
+  label: { fontSize: 16, fontWeight: "500" },
   input: {
     height: 48,
     borderRadius: 10,
@@ -288,15 +288,15 @@ const styles = StyleSheet.create({
   },
   resultCard: { borderWidth: 1.5 },
   resultHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  resultLabel: { fontSize: 14, fontWeight: "600" },
+  resultLabel: { fontSize: 16, fontWeight: "600" },
   resultRow: { flexDirection: "row", gap: 16 },
   resultItem: { flex: 1 },
-  resultSubLabel: { fontSize: 12, marginBottom: 4 },
+  resultSubLabel: { fontSize: 16, marginBottom: 4 },
   resultValueRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
   resultValue: { fontSize: 28, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  resultUnit: { fontSize: 14 },
+  resultUnit: { fontSize: 16 },
   resultRange: { fontSize: 16, fontWeight: "600", fontVariant: ["tabular-nums"] },
-  resultNote: { fontSize: 13, lineHeight: 18 },
+  resultNote: { fontSize: 16, lineHeight: 22 },
   analyzeBtn: {
     flexDirection: "row",
     alignItems: "center",

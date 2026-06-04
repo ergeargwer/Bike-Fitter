@@ -17,6 +17,8 @@ import { PoseAngles, useAppContext } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { MEDIAPIPE_HTML } from "@/lib/mediapipeHtml";
 
+const TAB_BAR_HEIGHT = 49;
+
 type WebViewMessage =
   | { type: "captured"; position: "6oclock" | "3oclock"; angles: PoseAngles }
   | { type: "all_captured" }
@@ -36,6 +38,7 @@ export default function AnalyzeScreen() {
   const [webviewError, setWebviewError] = useState<string | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 84 : TAB_BAR_HEIGHT + insets.bottom;
 
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     try {
@@ -181,9 +184,16 @@ export default function AnalyzeScreen() {
           allowFileAccess
           allowUniversalAccessFromFileURLs
           mixedContentMode="always"
+          // iOS: auto-grant camera permission to the WebView (app-level permission already declared)
+          mediaCapturePermissionGrantType="grant"
           onError={() => setWebviewError("WebView 載入失敗")}
           testID="mediapipe-webview"
         />
+      )}
+
+      {/* Spacer so WebView controls are not hidden behind the floating tab bar */}
+      {!sixCaptured && !webviewError && (
+        <View style={{ height: bottomPad }} />
       )}
 
       {sixCaptured && (
@@ -193,7 +203,7 @@ export default function AnalyzeScreen() {
             {
               backgroundColor: colors.background,
               borderTopColor: colors.border,
-              paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 8,
+              paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + TAB_BAR_HEIGHT + 8,
             },
           ]}
         >
@@ -230,7 +240,7 @@ const styles = StyleSheet.create({
   captureStatus: { flexDirection: "row", gap: 16 },
   statusDot: { flexDirection: "row", alignItems: "center", gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  statusTxt: { fontSize: 13, fontWeight: "500" },
+  statusTxt: { fontSize: 16, fontWeight: "500" },
   webview: { flex: 1 },
   footer: {
     padding: 16,
@@ -253,14 +263,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: { fontSize: 20, fontWeight: "700", marginTop: 8 },
-  emptyDesc: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+  emptyDesc: { fontSize: 16, textAlign: "center", lineHeight: 24 },
   backBtn: {
     marginTop: 8,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
-  backBtnTxt: { fontSize: 15, fontWeight: "600" },
+  backBtnTxt: { fontSize: 16, fontWeight: "600" },
   errorWrap: {
     flex: 1,
     alignItems: "center",
@@ -269,6 +279,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   errorTitle: { fontSize: 20, fontWeight: "700", marginTop: 8 },
-  errorDesc: { fontSize: 15, textAlign: "center" },
-  errorHint: { fontSize: 13, textAlign: "center", lineHeight: 18 },
+  errorDesc: { fontSize: 16, textAlign: "center" },
+  errorHint: { fontSize: 16, textAlign: "center", lineHeight: 24 },
 });

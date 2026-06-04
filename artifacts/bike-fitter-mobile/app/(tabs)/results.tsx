@@ -60,7 +60,7 @@ function AngleCard({ analysis }: { analysis: AngleAnalysis }) {
       </View>
       {!isGood && (
         <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30" }]}>
-          <Feather name="info" size={13} color={sc} />
+          <Feather name="info" size={14} color={sc} />
           <Text style={[styles.suggestionTxt, { color: sc }]}>{analysis.suggestion}</Text>
         </View>
       )}
@@ -88,7 +88,7 @@ function KOPSCard({ kops }: { kops: KOPSAnalysis }) {
       <Text style={[styles.kopsDesc, { color: colors.foreground }]}>{kops.description}</Text>
       {!kops.isOptimal && (
         <View style={[styles.suggestionBox, { backgroundColor: sc + "10", borderColor: sc + "30" }]}>
-          <Feather name="info" size={13} color={sc} />
+          <Feather name="info" size={14} color={sc} />
           <Text style={[styles.suggestionTxt, { color: sc }]}>{kops.suggestion}</Text>
         </View>
       )}
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   scoreNum: { fontSize: 56, fontWeight: "800", lineHeight: 64, fontVariant: ["tabular-nums"] },
   scoreLabel: { fontSize: 22, fontWeight: "700" },
-  scoreSub: { fontSize: 14 },
+  scoreSub: { fontSize: 16 },
   lemondCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -344,13 +344,13 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "600" },
   lemondRow: { flexDirection: "row", gap: 16 },
   lemondItem: { flex: 1 },
-  lemondLabel: { fontSize: 12, marginBottom: 4 },
+  lemondLabel: { fontSize: 16, marginBottom: 4 },
   lemondValueRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
   lemondValue: { fontSize: 28, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  lemondUnit: { fontSize: 14 },
+  lemondUnit: { fontSize: 16 },
   lemondRange: { fontSize: 18, fontWeight: "600", fontVariant: ["tabular-nums"] },
   section: { gap: 8 },
-  sectionLabel: { fontSize: 13, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  sectionLabel: { fontSize: 16, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   angleCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -360,12 +360,12 @@ const styles = StyleSheet.create({
   angleHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   angleLeft: { flex: 1, gap: 2 },
   angleName: { fontSize: 16, fontWeight: "600" },
-  angleDesc: { fontSize: 13, lineHeight: 18 },
+  angleDesc: { fontSize: 16, lineHeight: 22 },
   statusBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
-  statusTxt: { fontSize: 13, fontWeight: "600" },
+  statusTxt: { fontSize: 16, fontWeight: "600" },
   angleValues: { flexDirection: "row", gap: 16 },
   angleValueItem: { flex: 1 },
-  angleLabel: { fontSize: 12, marginBottom: 2 },
+  angleLabel: { fontSize: 16, marginBottom: 2 },
   angleNum: { fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] },
   suggestionBox: {
     flexDirection: "row",
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
-  suggestionTxt: { fontSize: 13, lineHeight: 18, flex: 1 },
-  kopsDesc: { fontSize: 15, lineHeight: 20 },
+  suggestionTxt: { fontSize: 16, lineHeight: 22, flex: 1 },
+  kopsDesc: { fontSize: 16, lineHeight: 22 },
   actions: { gap: 10, marginTop: 4 },
   saveBtn: {
     flexDirection: "row",
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  newBtnTxt: { fontSize: 15, fontWeight: "600" },
+  newBtnTxt: { fontSize: 16, fontWeight: "600" },
   emptyWrap: {
     flex: 1,
     alignItems: "center",
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: { fontSize: 20, fontWeight: "700", marginTop: 8 },
-  emptyDesc: { fontSize: 15, textAlign: "center" },
+  emptyDesc: { fontSize: 16, textAlign: "center" },
   actionBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  actionBtnTxt: { fontSize: 15, fontWeight: "600" },
+  actionBtnTxt: { fontSize: 16, fontWeight: "600" },
 });

@@ -10,24 +10,24 @@ body{background:#0d1117;color:#f0f6fc;font-family:-apple-system,system-ui,sans-s
 .cam{position:relative;flex:1;background:#000;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1)}
-.overlay-status{position:absolute;top:12px;left:12px;right:12px;background:rgba(13,17,23,0.85);border:1px solid #30363d;border-radius:10px;padding:10px 14px;font-size:14px;text-align:center;color:#f0f6fc;line-height:1.4}
+.overlay-status{position:absolute;top:12px;left:12px;right:12px;background:rgba(13,17,23,0.85);border:1px solid #30363d;border-radius:10px;padding:12px 16px;font-size:16px;text-align:center;color:#f0f6fc;line-height:1.4}
 .overlay-status.warn{color:#f59e0b;border-color:#f59e0b40}
 .overlay-status.ok{color:#10b981;border-color:#10b98140}
-.controls{background:#0d1117;padding:12px;gap:8px;display:flex;flex-direction:column;border-top:1px solid #30363d}
+.controls{background:#0d1117;padding:12px;padding-bottom:max(12px, env(safe-area-inset-bottom));gap:8px;display:flex;flex-direction:column;border-top:1px solid #30363d}
 .row{display:flex;gap:8px}
-.btn{flex:1;padding:14px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.15s}
+.btn{flex:1;padding:16px;border-radius:10px;border:none;font-size:16px;font-weight:600;cursor:pointer;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent}
 .btn:active{opacity:0.75}
 .btn-primary{background:#3b82f6;color:#fff}
 .btn-primary:disabled{background:#1e3a5f;color:#4b6f9e;cursor:default}
 .btn-success{background:#10b981;color:#fff}
 .btn-outline{background:#1f2937;color:#9ca3af}
 .cap-row{display:flex;justify-content:space-between;padding:0 4px}
-.cap-item{font-size:13px;color:#8b949e;display:flex;align-items:center;gap:4px}
+.cap-item{font-size:16px;color:#8b949e;display:flex;align-items:center;gap:6px}
 .cap-item.done{color:#10b981}
-.dot{width:8px;height:8px;border-radius:50%;background:#30363d}
+.dot{width:8px;height:8px;border-radius:50%;background:#30363d;flex-shrink:0}
 .dot.done{background:#10b981}
 .loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d1117;gap:16px;z-index:10}
-.loader-text{font-size:14px;color:#8b949e}
+.loader-text{font-size:16px;color:#8b949e}
 .spinner{width:40px;height:40px;border:3px solid #30363d;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
