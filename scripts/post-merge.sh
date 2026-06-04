@@ -12,38 +12,40 @@ if [ -n "$GITHUB_TOKEN" ]; then
     git remote add github "$GITHUB_REMOTE"
   fi
 
-  # Fetch latest remote state so the ahead count is accurate
-  git fetch github main -q 2>/dev/null || true
+  git config user.email "123177572+ergeargwer@users.noreply.github.com"
+  git config user.name "Peter0910"
+
+  # Fetch latest remote state
+  git fetch github main -q
 
   AHEAD=$(git rev-list --count github/main..HEAD 2>/dev/null || echo 0)
+  BEHIND=$(git rev-list --count HEAD..github/main 2>/dev/null || echo 0)
 
-  if [ "$AHEAD" -gt 0 ]; then
-    echo "Pushing $AHEAD commit(s) to GitHub..."
-
-    MAX_ATTEMPTS=3
-    ATTEMPT=0
-    PUSH_OK=0
-
-    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-      ATTEMPT=$((ATTEMPT + 1))
-      if git push github main 2>&1; then
-        PUSH_OK=1
-        break
-      fi
-
-      if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-        WAIT=$((ATTEMPT * 5))
-        echo "GitHub push attempt $ATTEMPT failed — retrying in ${WAIT}s..."
-        sleep "$WAIT"
-      fi
-    done
-
-    if [ $PUSH_OK -eq 0 ]; then
-      echo "ERROR: GitHub push failed after $MAX_ATTEMPTS attempt(s). Check network connectivity, token permissions, and branch protection rules." >&2
-      exit 1
+  if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -eq 0 ]; then
+    echo "GitHub already up-to-date."
+  elif [ "$BEHIND" -gt 0 ]; then
+    # Local is behind or diverged — stash, rebase, push, restore
+    echo "Local is $BEHIND commit(s) behind GitHub — rebasing before push..."
+    STASHED=0
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+      git stash push -u -q -m "post-merge-sync-stash"
+      STASHED=1
+    fi
+    git rebase github/main -q
+    AHEAD_AFTER=$(git rev-list --count github/main..HEAD 2>/dev/null || echo 0)
+    if [ "$AHEAD_AFTER" -gt 0 ]; then
+      git push github main
+      echo "Pushed $AHEAD_AFTER commit(s) to GitHub after rebase."
+    else
+      echo "Nothing new to push after rebase."
+    fi
+    if [ "$STASHED" -eq 1 ]; then
+      git stash pop -q || true
     fi
   else
-    echo "GitHub already up-to-date."
+    # Local is purely ahead — simple fast-forward push
+    echo "Pushing $AHEAD commit(s) to GitHub..."
+    git push github main
   fi
 else
   echo "GITHUB_TOKEN is not set — skipping GitHub sync"
