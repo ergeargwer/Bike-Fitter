@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 // ── Colour constants ─────────────────────────────────────────────────────────
 const FRAME_COLOR = "#4A9EFF";
 const RIDER_COLOR = "#FF3333";   // bright red — main limbs
-const RIDER_DIM   = "#882222";   // dark red — secondary (12 o'clock) leg
 const JOINT_COLOR = "#FF6666";   // lighter red — joint dots
 const FOOT_COLOR  = "#FF4444";   // red — foot
 const HEAD_R      = 18;   // px (non-scaling)
@@ -126,22 +125,10 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
   const {
     pedal6, ankle6, footTip6, knee6,
     hip, shoulder, elbow, wrist, headCenter,
-    pedal12, ankle12, knee12,
   } = rider;
 
   return (
     <g>
-      {/* ── Secondary leg (12 o'clock, dim) ─────────────────────────── */}
-      <polyline
-        points={`${p(hip)} ${p(knee12)} ${p(ankle12)} ${p(pedal12)}`}
-        fill="none" stroke={RIDER_DIM} strokeWidth="5"
-        vectorEffect="non-scaling-stroke"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
-      <Dot pt={knee12}  fill={RIDER_DIM} />
-      <Dot pt={ankle12} fill={RIDER_DIM} />
-      <Dot pt={pedal12} fill={RIDER_DIM} />
-
       {/* ── Primary leg (6 o'clock) ──────────────────────────────────── */}
       {/* Foot: toe tip → ankle → pedal */}
       <polyline

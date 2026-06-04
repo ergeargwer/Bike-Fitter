@@ -37,7 +37,6 @@ const SHIN_RATIO            = 0.54;   // shin  is 54% of inseam
 const FOOT_TO_HEIGHT_RATIO  = 0.152;  // footLength = 15.2% of height
 const FOOT_CONTACT_PROP     = 0.65;   // ankle is 65% from ball toward heel
 const FOOT_ANGLE_6_DEG      = 15;     // foot angle at 6-o'clock (toe slightly down)
-const FOOT_ANGLE_12_DEG     =  5;     // foot angle at 12-o'clock (nearly flat)
 const HIP_FORWARD_MM        = 25;     // hip joint is ~25 mm forward of saddle
 const UPPER_ARM_RATIO       = 0.558;  // upperArm = 55.8% of arm length
 const FORE_ARM_RATIO        = 0.442;  // foreArm  = 44.2% of arm length
@@ -76,9 +75,6 @@ export interface RiderPositionsSVG {
   elbow:      Vec2;
   wrist:      Vec2;
   headCenter: Vec2;
-  pedal12:    Vec2;
-  ankle12:    Vec2;
-  knee12:     Vec2;
 }
 
 export interface VisualizerDrawData {
@@ -252,15 +248,6 @@ export function calculateVisualizerData(
   // Knee: findJoint from hip and ankle; prefer forward (+x) to place knee in front
   const knee6 = findJoint(hip, ankle6, thighMm, shinMm, v(1, 0));
 
-  // ── Secondary leg: 12-o'clock (pedal at top, dim) ────────────────────────
-  const pedal12 = v(bb.x, bb.y - params.crankLength);
-  const foot12Rad = FOOT_ANGLE_12_DEG * RAD;
-  const ankle12 = v(
-    pedal12.x - footLever * Math.cos(foot12Rad),
-    pedal12.y - footLever * Math.sin(foot12Rad)
-  );
-  const knee12 = findJoint(hip, ankle12, thighMm, shinMm, v(1, 0));
-
   // ── Upper body ────────────────────────────────────────────────────────────
   // Shoulder: findJoint from hip to handlebar, prefer UPWARD (y-down: v(0,-1)).
   // Uses torsoMm and armReach as the two segment lengths so the shoulder sits at
@@ -322,9 +309,6 @@ export function calculateVisualizerData(
       elbow:      toSVG(elbow),
       wrist:      toSVG(wrist),
       headCenter: toSVG(headCenter),
-      pedal12:    toSVG(pedal12),
-      ankle12:    toSVG(ankle12),
-      knee12:     toSVG(knee12),
     },
     kneeAngle6,
     torsoAngle,
