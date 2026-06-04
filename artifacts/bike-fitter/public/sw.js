@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bike-fitter-v1';
+const CACHE_NAME = 'bike-fitter-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
