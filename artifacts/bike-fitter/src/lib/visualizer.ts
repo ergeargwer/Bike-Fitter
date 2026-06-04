@@ -23,10 +23,13 @@ export const WHEEL_RADIUS_SVG = WHEEL_RADIUS_MM;
 
 // ── SVG canvas layout constants (mm) ─────────────────────────────────────────
 // toSVG adds these to bike-space coords so the bike is centred in the viewBox.
-const LEFT_MM         = 380; // clearance left of rear axle (rear tyre + margin)
-const ABOVE_AXLE_MM   = 900; // headroom above axle (rider head ~650-700 mm up)
-const RIGHT_MM        = 380; // clearance right of front axle
-const BELOW_GROUND_MM =  80; // small margin below the ground line
+// ABOVE_AXLE_MM must be large enough for the rider's shoulder (~1100-1200 mm
+// above the axle for a 175-180 cm rider). 1400 mm gives safe headroom and
+// matches the BikeVisualizer.tsx defaultGroundY fallback (1400 + 336 = 1736).
+const LEFT_MM         = 436; // clearance left of rear axle (rear wheel r + margin)
+const ABOVE_AXLE_MM   = 1400; // headroom above axle — must fit rider head/shoulder
+const RIGHT_MM        = 536; // clearance right of front axle (wheel + bar overhang)
+const BELOW_GROUND_MM = 150; // margin below ground line
 
 // ── Body segment constants (from bike-fit-vis reference) ──────────────────────
 const LEG_SCALE             = 1.09;   // anatomical leg (hip→ankle) = 109% inseam

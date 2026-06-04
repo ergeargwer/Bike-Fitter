@@ -33,9 +33,13 @@ description: SVG y-down coordinate system used in visualizer.ts — signs, scale
 - `angleDeg(sub(shoulder, hip), v(0, -1))` — v(0,-1) = "upward" in y-down
 
 ## viewBox & groundY
-- `viewBox.width = wheelbase + LEFT_MM(380) + RIGHT_MM(380)`
-- `viewBox.height = ABOVE_AXLE_MM(900) + WHEEL_RADIUS_MM(336) + BELOW_GROUND_MM(80) = 1316`
-- `groundY = 900 + 336 = 1236`
+- `LEFT_MM=436, RIGHT_MM=536, ABOVE_AXLE_MM=1400, BELOW_GROUND_MM=150`
+- `viewBox.width = wheelbase + 436 + 536` (for Mamba S: 1949)
+- `viewBox.height = 1400 + 336 + 150 = 1886`
+- `groundY = 1400 + 336 = 1736`
+- These exactly match BikeVisualizer.tsx `defaultVb` and `defaultGroundY` fallback values.
 - BikeVisualizer.tsx consumes `vizData.viewBox` and `vizData.groundY`
+
+**Critical:** ABOVE_AXLE_MM=900 caused the shoulder (≈1100mm above axle for 175cm rider) to land at SVG y=-62, outside the viewBox — entire stickman disappeared. Use 1400 minimum.
 
 **Why:** The old code used y-up bike-space converted via toSVG flip. New code uses y-down natively so there is no sign flip. Old y-up approach caused confusion about which sign to use for BB drop.

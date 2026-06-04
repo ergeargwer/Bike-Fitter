@@ -1,0 +1,116 @@
+請完整替換 BikeVisualizer.tsx 中的火柴人繪製邏輯，
+只修改 SVG 人體部分，不動車架繪製。
+
+## 問題根因
+目前火柴人消失的原因：
+1. 髖關節座標用了 saddleHeight（絕對高度）當 y 值，
+   但 SVG 座標系 y 軸向下，導致髖關節跑到 viewBox 外
+2. 踝關節用 bb.y + crankLength 但 bb.y 本身可能已是負值
+3. 軀幹角度用了把手相對髖關節的角度，但方向算反了
+
+## 正確做法：所有人體座標必須相對於已確定的車架錨點計算
+
+請從 BikeVisualizer 現有的車架繪製中取出以下已計算好的錨點：
+- bbPoint（BB 中心的 SVG 座標，已縮放）
+- saddlePoint（座墊頂的 SVG 座標，已縮放）
+- handlebarPoint（把手的 SVG 座標，已縮放）
+- scale（縮放比例）
+
+然後用這些錨點計算人體關節：
+
+const RAD = Math.PI / 180
+const s = scale  // 縮放比例，mm 轉 SVG px
+
+// 輸入（來自使用者身體數據）
+// inseam, torsoLength, armLength 單位 mm
+
+// 1. 髖關節 = saddlePoint 往上 20px（座墊上方）
+const hip = { x: saddlePoint.x, y: saddlePoint.y - 20 }
+
+// 2. 踝關節 = BB 正下方 crankLength（6點鐘）
+//    注意：SVG y 向下，所以下方是 +y
+const ankle = { x: bbPoint.x, y: bbPoint.y + crankLength * s }
+
+// 3. 膝關節：用三角形求解
+//    已知 hip, ankle, 大腿長 thigh = inseam * 0.53 * s, 小腿長 shin = inseam * 0.54 * s
+const thigh = inseam * 0.53 * s
+const shin = inseam * 0.54 * s
+const dx = ankle.x - hip.x
+const dy = ankle.y - hip.y
+const dist = Math.sqrt(dx * dx + dy * dy)
+// 用餘弦定理求大腿與連線的夾角
+const cosA = (thigh * thigh + dist * dist - shin * shin) / (2 * thigh * dist)
+const angleA = Math.acos(Math.max(-1, Math.min(1, cosA)))
+const baseAngle = Math.atan2(dy, dx)
+// 膝蓋在髖關節前方（x 較大方向）
+const knee = {
+  x: hip.x + thigh * Math.cos(baseAngle + angleA),
+  y: hip.y + thigh * Math.sin(baseAngle + angleA)
+}
+
+// 4. 肩關節：從髖關節往把手方向延伸軀幹長度
+const hipToHandle = Math.atan2(
+  handlebarPoint.y - hip.y,
+  handlebarPoint.x - hip.x
+)
+const shoulder = {
+  x: hip.x + torsoLength * s * Math.cos(hipToHandle),
+  y: hip.y + torsoLength * s * Math.sin(hipToHandle)
+}
+
+// 5. 手肘：肩關節到把手中間，略往下偏
+const elbow = {
+  x: (shoulder.x + handlebarPoint.x) / 2,
+  y: (shoulder.y + handlebarPoint.y) / 2 + armLength * s * 0.08
+}
+
+// 6. 頭部：肩關節正上方
+const headLen = (height - inseam - torsoLength) * 0.55 * s
+const headCenter = { x: shoulder.x - 20, y: shoulder.y - headLen }
+
+## SVG 繪製（替換現有人體 SVG 元素）
+
+// 主線（白色）
+<line x1={hip.x} y1={hip.y} x2={knee.x} y2={knee.y} stroke="#E8E8E8" strokeWidth={3} />
+<line x1={knee.x} y1={knee.y} x2={ankle.x} y2={ankle.y} stroke="#E8E8E8" strokeWidth={3} />
+<line x1={hip.x} y1={hip.y} x2={shoulder.x} y2={shoulder.y} stroke="#E8E8E8" strokeWidth={3} />
+<line x1={shoulder.x} y1={shoulder.y} x2={elbow.x} y2={elbow.y} stroke="#E8E8E8" strokeWidth={3} />
+<line x1={elbow.x} y1={elbow.y} x2={handlebarPoint.x} y2={handlebarPoint.y} stroke="#E8E8E8" strokeWidth={3} />
+<line x1={shoulder.x} y1={shoulder.y} x2={headCenter.x} y2={headCenter.y} stroke="#E8E8E8" strokeWidth={3} />
+
+// 頭部
+<circle cx={headCenter.x} cy={headCenter.y} r={14} stroke="#E8E8E8" strokeWidth={2} fill="none" />
+
+// 關節圓點
+{[hip, knee, ankle, shoulder, elbow].map((pt, i) => (
+  <circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#FFFFFF" />
+))}
+
+// 對側腿（12點鐘曲柄，顏色較淡）
+const ankle2 = { x: bbPoint.x, y: bbPoint.y - crankLength * s }
+const knee2 = {
+  x: hip.x + thigh * Math.cos(baseAngle - angleA),
+  y: hip.y + thigh * Math.sin(baseAngle - angleA)
+}
+<line x1={hip.x} y1={hip.y} x2={knee2.x} y2={knee2.y} stroke="#444" strokeWidth={2} />
+<line x1={knee2.x} y1={knee2.y} x2={ankle2.x} y2={ankle2.y} stroke="#444" strokeWidth={2} />
+
+## 角度計算（顯示在角度指標卡）
+
+// 膝蓋角度（髖-膝-踝）
+function calcAngle(a, b, c) {
+  const ab = { x: a.x - b.x, y: a.y - b.y }
+  const cb = { x: c.x - b.x, y: c.y - b.y }
+  const dot = ab.x * cb.x + ab.y * cb.y
+  const mag = Math.sqrt(ab.x**2 + ab.y**2) * Math.sqrt(cb.x**2 + cb.y**2)
+  return Math.round(Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI)
+}
+
+kneeAngle = calcAngle(hip, knee, ankle)       // 目標 155-170°
+torsoAngle = calcAngle(hip, shoulder, {x: shoulder.x + 100, y: shoulder.y})  // 軀幹與水平線
+hipAngle = calcAngle(shoulder, hip, knee)     // 髖部角度
+
+## 注意
+- 若 inseam / torsoLength / armLength 未輸入，不繪製火柴人，顯示提示文字
+- 不修改車架繪製邏輯
+- 不修改參數輸入區
