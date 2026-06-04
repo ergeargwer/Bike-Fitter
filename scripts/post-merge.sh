@@ -3,6 +3,18 @@ set -e
 pnpm install --frozen-lockfile
 pnpm --filter db push
 
+# Run CI checks before syncing to GitHub
+echo "Running CI checks (typecheck + build)..."
+if ! pnpm run typecheck; then
+  echo "ERROR: typecheck failed — skipping GitHub sync"
+  exit 1
+fi
+if ! pnpm run build; then
+  echo "ERROR: build failed — skipping GitHub sync"
+  exit 1
+fi
+echo "CI checks passed."
+
 # Auto-sync to GitHub
 if [ -n "$GITHUB_TOKEN" ]; then
   GITHUB_REMOTE="https://ergeargwer:${GITHUB_TOKEN}@github.com/ergeargwer/Bike-Fitter.git"
