@@ -41,7 +41,7 @@ const FOOT_ANGLE_12_DEG     =  5;     // foot angle at 12-o'clock (nearly flat)
 const HIP_FORWARD_MM        = 25;     // hip joint is ~25 mm forward of saddle
 const UPPER_ARM_RATIO       = 0.558;  // upperArm = 55.8% of arm length
 const FORE_ARM_RATIO        = 0.442;  // foreArm  = 44.2% of arm length
-const ARM_REACH_RATIO       = 0.87;   // effective shoulder→wrist reach
+const ARM_REACH_RATIO       = 0.981;  // effective shoulder→wrist reach (gives ~158° elbow bend)
 const RAD                   = Math.PI / 180;
 
 // ── Default geometry (Mamba FCM-2159 S size) ──────────────────────────────────
@@ -210,14 +210,14 @@ export function calculateVisualizerData(
   const handlebar = v(stemStart.x + params.stemLength, stemStart.y);
 
   // ── Body segment lengths (mm) ─────────────────────────────────────────────
-  // measurements fields are already in mm (height=1750, inseam=820, etc.)
-  // No LEG_SCALE: bike fitting saddle height corresponds directly to inseam
-  const thighMm      = measurements.inseam      * THIGH_RATIO;
-  const shinMm       = measurements.inseam      * SHIN_RATIO;
-  const torsoMm      = measurements.torsoLength;
-  const armMm        = measurements.armLength;
-  const neckMm       = measurements.height      * 0.13;
-  const footLengthMm = measurements.height      * FOOT_TO_HEIGHT_RATIO;
+  // measurements fields are in cm (home.tsx labels: 身高/cm, 跨高/cm, etc.)
+  // Multiply by 10 to convert cm → mm for all geometry calculations.
+  const thighMm      = measurements.inseam      * 10 * THIGH_RATIO;
+  const shinMm       = measurements.inseam      * 10 * SHIN_RATIO;
+  const torsoMm      = measurements.torsoLength * 10;
+  const armMm        = measurements.armLength   * 10;
+  const neckMm       = measurements.height      * 10 * 0.13;
+  const footLengthMm = measurements.height      * 10 * FOOT_TO_HEIGHT_RATIO;
   const footLever    = FOOT_CONTACT_PROP * footLengthMm;
   const footFwd      = footLengthMm * (1 - FOOT_CONTACT_PROP);
 
@@ -262,21 +262,14 @@ export function calculateVisualizerData(
   const knee12 = findJoint(hip, ankle12, thighMm, shinMm, v(1, 0));
 
   // ── Upper body ────────────────────────────────────────────────────────────
-  // Shoulder: anchor-based — hip + torsoMm in direction of hip→handlebar.
-  // Avoids the findJoint prefer=upward artefact that placed shoulder too high.
-  const hipToBar = sub(handlebar, hip);
-  const torsoDir = nrm(hipToBar);
-  const shoulder = v(
-    hip.x + torsoMm * torsoDir.x,
-    hip.y + torsoMm * torsoDir.y
-  );
+  // Shoulder: findJoint from hip to handlebar, prefer UPWARD (y-down: v(0,-1)).
+  // Uses torsoMm and armReach as the two segment lengths so the shoulder sits at
+  // the intersection of "torso length from hip" and "arm reach from handlebar".
+  const shoulder = findJoint(hip, handlebar, torsoMm, armReach, v(0, -1));
 
-  // Elbow: midpoint of shoulder→handlebar, drooped downward by 30 mm.
-  // Using midpoint avoids findJoint degenerating when shoulder is close to handlebar.
-  const elbow = v(
-    (shoulder.x + handlebar.x) / 2,
-    (shoulder.y + handlebar.y) / 2 + 30
-  );
+  // Elbow: findJoint from shoulder to handlebar, prefer DOWNWARD (natural droop).
+  // y-down: down = v(0, +1)
+  const elbow = findJoint(shoulder, handlebar, upperArmMm, foreArmMm, v(0, 1));
 
   const wrist = handlebar;
 

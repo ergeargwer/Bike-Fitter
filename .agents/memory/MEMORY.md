@@ -1,1 +1,2 @@
-- [Shoulder joint kinematics](shoulder-kinematics.md) — findJoint(prefer=up) gives unrealistically upright posture; use anchor-based direction formula instead.
+- [Visualizer measurement units](visualizer-units.md) — home.tsx stores cm (82, 60, 65); visualizer.ts must ×10 before any mm geometry
+- [Shoulder/elbow joint model](joint-model.md) — findJoint(hip,bar,torsoMm,armReach,prefer_up) for shoulder; ARM_REACH_RATIO=0.981 gives elbowAngle≈157°

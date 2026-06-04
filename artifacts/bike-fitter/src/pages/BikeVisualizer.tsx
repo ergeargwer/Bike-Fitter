@@ -240,7 +240,7 @@ export function BikeVisualizer() {
     const updated: VisualizerParams = {
       ...draftParams,
       mambaSize: size,
-      stemHeight: geo.stack + 20,
+      stemHeight: geo.stack + 78,
     };
     setDraftParams(updated);
     setLiveParams(updated);
@@ -352,7 +352,7 @@ export function BikeVisualizer() {
         <ParamRow
           label="龍頭高度"
           value={draftParams.stemHeight}
-          hint={`Stack ${mambaGeo.stack} mm + 墊片（建議 ${mambaGeo.stack + 10}–${mambaGeo.stack + 40} mm）`}
+          hint={`Stack ${mambaGeo.stack}mm + 墊片（建議 550-620mm）`}
           step={5}
           onChange={(v) => set("stemHeight", v)}
         />
@@ -452,7 +452,7 @@ function buildDefaultParams(
     mambaSize,
     saddleHeight:  Math.round(inseam * 8.83),
     saddleOffset:  30,
-    stemHeight:    stack + 20,
+    stemHeight:    stack + 78,
     stemLength:    100,
     crankLength:   getDefaultCrankLength(height),
   };
