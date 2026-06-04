@@ -6,6 +6,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -14,6 +15,44 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FittingRecord, useAppContext } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+
+function buildShareText(record: FittingRecord): string {
+  const date = formatDate(record.date);
+  const bikeLabel = record.measurements.bikeType === "road" ? "公路車" : "三鐵車";
+  const { height, inseam, armLength, torsoLength } = record.measurements;
+  const { saddleHeight, saddleHeightMin, saddleHeightMax } = record.lemond;
+  const goodCount = record.analyses.filter((a) => a.status === "符合").length;
+  const totalCount = record.analyses.length;
+  const sl = scoreLabel(record.fitScore);
+
+  const lines: string[] = [
+    `單車 Fitting 報告`,
+    `日期：${date}`,
+    `車款：${bikeLabel}`,
+    ``,
+    `【身體測量】`,
+    `身高：${height} cm`,
+    `跨高：${inseam} cm`,
+    `手臂長：${armLength} cm`,
+    `軀幹長：${torsoLength} cm`,
+    ``,
+    `【Fitting 評分】`,
+    `綜合評分：${record.fitScore} 分（${sl}）`,
+    `符合項目：${goodCount}/${totalCount} 項`,
+    ``,
+    `【座高建議（LeMond 公式）】`,
+    `建議座高：${saddleHeight} cm（範圍 ${saddleHeightMin}–${saddleHeightMax} cm）`,
+  ];
+
+  if (record.analyses.length > 0) {
+    lines.push(``, `【關節角度分析】`);
+    for (const a of record.analyses) {
+      lines.push(`${a.name}：${a.detected}${a.unit}（建議 ${a.recommendedMin}–${a.recommendedMax}${a.unit}）${a.status}`);
+    }
+  }
+
+  return lines.join("\n");
+}
 
 function scoreColor(score: number, colors: ReturnType<typeof useColors>) {
   if (score >= 90) return colors.success;
@@ -65,6 +104,14 @@ function HistoryItem({
     ]);
   };
 
+  const handleShare = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Share.share({ message: buildShareText(record) });
+    } catch {
+    }
+  };
+
   const goodCount = record.analyses.filter((a) => a.status === "符合").length;
   const totalCount = record.analyses.length;
 
@@ -114,14 +161,24 @@ function HistoryItem({
             座高 {record.lemond.saddleHeight}cm
           </Text>
         </View>
-        <Pressable
-          onPress={handleDelete}
-          hitSlop={8}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          testID={`delete-${record.id}`}
-        >
-          <Feather name="trash-2" size={16} color={colors.destructive} />
-        </Pressable>
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={handleShare}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            testID={`share-${record.id}`}
+          >
+            <Feather name="share-2" size={16} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={handleDelete}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            testID={`delete-${record.id}`}
+          >
+            <Feather name="trash-2" size={16} color={colors.destructive} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -233,6 +290,7 @@ const styles = StyleSheet.create({
   divider: { height: 1 },
   itemBottom: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   statRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 16 },
   statTxt: { fontSize: 16 },
   statSep: { fontSize: 16 },
   emptyWrap: {
