@@ -1,1 +1,1 @@
-- [Visualizer coordinate system](visualizer-geometry.md) — y-down SVG, mm units, rear axle=origin; bb.y=+bbDrop (not -bbDrop); viewBox+groundY dynamic.
+- [Shoulder joint kinematics](shoulder-kinematics.md) — findJoint(prefer=up) gives unrealistically upright posture; use anchor-based direction formula instead.
