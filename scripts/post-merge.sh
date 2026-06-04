@@ -1,5 +1,19 @@
 #!/bin/bash
 set -e
+
+# Send a Slack notification if SLACK_WEBHOOK_URL is set.
+# Usage: notify_failure "message"
+notify_failure() {
+  local MESSAGE="$1"
+  if [ -n "$SLACK_WEBHOOK_URL" ]; then
+    local PAYLOAD
+    PAYLOAD=$(printf '{"text":"%s"}' "$MESSAGE")
+    curl -s -X POST -H "Content-Type: application/json" \
+      -d "$PAYLOAD" \
+      "$SLACK_WEBHOOK_URL" >/dev/null || true
+  fi
+}
+
 pnpm install --frozen-lockfile
 pnpm --filter db push
 
@@ -10,10 +24,12 @@ pnpm --filter db push
 echo "Running CI checks (typecheck + build)..."
 if ! pnpm run typecheck; then
   echo "ERROR: typecheck failed — skipping GitHub sync"
+  notify_failure "Bike Fitter post-merge: typecheck failed — GitHub sync skipped."
   exit 1
 fi
 if ! pnpm --filter "!@workspace/bike-fitter-mobile" run build; then
   echo "ERROR: build failed — skipping GitHub sync"
+  notify_failure "Bike Fitter post-merge: build failed — GitHub sync skipped."
   exit 1
 fi
 echo "CI checks passed."
@@ -46,10 +62,16 @@ if [ -n "$GITHUB_TOKEN" ]; then
       git stash push -u -q -m "post-merge-sync-stash"
       STASHED=1
     fi
-    git rebase github/main -q
+    if ! git rebase github/main -q; then
+      notify_failure "Bike Fitter post-merge: rebase against github/main failed — manual intervention required."
+      exit 1
+    fi
     AHEAD_AFTER=$(git rev-list --count github/main..HEAD 2>/dev/null || echo 0)
     if [ "$AHEAD_AFTER" -gt 0 ]; then
-      git push github main
+      if ! git push github main; then
+        notify_failure "Bike Fitter post-merge: git push to GitHub failed (after rebase)."
+        exit 1
+      fi
       echo "Pushed $AHEAD_AFTER commit(s) to GitHub after rebase."
     else
       echo "Nothing new to push after rebase."
@@ -60,7 +82,10 @@ if [ -n "$GITHUB_TOKEN" ]; then
   else
     # Local is purely ahead — simple fast-forward push
     echo "Pushing $AHEAD commit(s) to GitHub..."
-    git push github main
+    if ! git push github main; then
+      notify_failure "Bike Fitter post-merge: git push to GitHub failed."
+      exit 1
+    fi
   fi
 else
   echo "GITHUB_TOKEN is not set — skipping GitHub sync"
