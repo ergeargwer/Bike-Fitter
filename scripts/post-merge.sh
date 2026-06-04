@@ -19,10 +19,29 @@ if [ -n "$GITHUB_TOKEN" ]; then
 
   if [ "$AHEAD" -gt 0 ]; then
     echo "Pushing $AHEAD commit(s) to GitHub..."
-    # Non-force push only — protected branches reject force-push;
-    # if push fails (e.g. required status checks), log a warning but
-    # do NOT fail the post-merge setup so the merge itself still succeeds.
-    git push github main 2>&1 || echo "WARNING: GitHub push skipped (branch protection or network issue — push manually when checks pass)"
+
+    MAX_ATTEMPTS=3
+    ATTEMPT=0
+    PUSH_OK=0
+
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+      ATTEMPT=$((ATTEMPT + 1))
+      if git push github main 2>&1; then
+        PUSH_OK=1
+        break
+      fi
+
+      if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+        WAIT=$((ATTEMPT * 5))
+        echo "GitHub push attempt $ATTEMPT failed — retrying in ${WAIT}s..."
+        sleep "$WAIT"
+      fi
+    done
+
+    if [ $PUSH_OK -eq 0 ]; then
+      echo "ERROR: GitHub push failed after $MAX_ATTEMPTS attempt(s). Check network connectivity, token permissions, and branch protection rules." >&2
+      exit 1
+    fi
   else
     echo "GitHub already up-to-date."
   fi
