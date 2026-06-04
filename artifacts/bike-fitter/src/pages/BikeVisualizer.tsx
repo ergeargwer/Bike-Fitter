@@ -130,13 +130,27 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
   return (
     <g>
       {/* ── Primary leg (6 o'clock) ──────────────────────────────────── */}
-      {/* Foot: toe tip → ankle → pedal */}
+      {/* Crank arm: BB → pedal axle */}
+      <line x1={pedal6.x} y1={pedal6.y}
+            x2={pedal6.x} y2={pedal6.y - 165}
+        stroke="#888888" strokeWidth="5"
+        vectorEffect="non-scaling-stroke" strokeLinecap="round"
+      />
+      {/* Pedal platform: horizontal bar centred on pedal axle */}
+      <line x1={pedal6.x - 28} y1={pedal6.y}
+            x2={pedal6.x + 28} y2={pedal6.y}
+        stroke="#CCCCCC" strokeWidth="7"
+        vectorEffect="non-scaling-stroke" strokeLinecap="round"
+      />
+      {/* Foot: toe tip → ankle → pedal axle */}
       <polyline
         points={`${p(footTip6)} ${p(ankle6)} ${p(pedal6)}`}
         fill="none" stroke={FOOT_COLOR} strokeWidth="5"
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round" strokeLinejoin="round"
       />
+      {/* Toe tip dot */}
+      <Dot pt={footTip6} r={5} fill={FOOT_COLOR} />
       {/* Thigh + shin */}
       <polyline
         points={`${p(hip)} ${p(knee6)} ${p(ankle6)}`}
@@ -170,8 +184,11 @@ function StickmanSVG({ rider }: { rider: RiderPositionsSVG }) {
       {/* ── Joint dots ───────────────────────────────────────────────── */}
       <Dot pt={hip}      />
       <Dot pt={knee6}    />
-      <Dot pt={ankle6}   />
-      <Dot pt={pedal6}   />
+      {/* Ankle: hollow ring to distinguish from other joints */}
+      <circle cx={ankle6.x} cy={ankle6.y} r={9}
+        fill="#1a1a1a" stroke={JOINT_COLOR} strokeWidth="3"
+        vectorEffect="non-scaling-stroke"
+      />
       <Dot pt={shoulder} />
       <Dot pt={elbow}    />
       <Dot pt={wrist}    />
